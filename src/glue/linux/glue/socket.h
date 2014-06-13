@@ -2,9 +2,17 @@
 #define _SOCKET_H_linux_tcpstriper_
 
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/socket.h>
+
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
+#include <linux/un.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
 
 /*
  *	Posix-ish Socket API
@@ -37,8 +45,11 @@
  * 		sockaddr
  * 		sockaddr_in
  *		linger
- *
- *		ip4_addr_t
+ */
+typedef struct sockaddr  sockaddr;
+typedef struct sockaddr_in  sockaddr_in;
+
+/*		ip4_addr_t
  *
  * 		-- functions --
  *
@@ -128,7 +139,7 @@ int sk_recv(int sk, void * buf, size_t len,
 {
 	int r;
 	do { r = recvfrom(sk, buf, len, 0, src, &srclen); }
-	while (r < 0 && errno = EINTR);
+	while (r < 0 && errno == EINTR);
 	return r;
 }
 
@@ -137,8 +148,8 @@ int sk_send(int sk, void * buf, size_t len,
             sockaddr * dst, socklen_t dstlen)
 {
 	int r;
-	do { r = sendto(sk, buf, len, 0, src, &srclen); }
-	while (r < 0 && errno = EINTR);
+	do { r = sendto(sk, buf, len, 0, dst, dstlen); }
+	while (r < 0 && errno == EINTR);
 	return r;
 }
 
@@ -156,10 +167,10 @@ int sk_getsockopt(int sk, int level, int opt,
 	return getsockopt(sk, level, opt, val, &vlen);
 }
 
-int sk_getsockopt(int sk, int level, int opt,
+int sk_setsockopt(int sk, int level, int opt,
                   const void * val, socklen_t vlen)
 {
-	return setsockopt(sk, level, opt, val, &vlen);
+	return setsockopt(sk, level, opt, val, vlen);
 }
 
 /*
@@ -188,7 +199,7 @@ inline
 int sk_error(int sk)
 {
 	int e;
-	return (getsockopt(sk, SOL_SOCKET, SO_ERROR, &e, sizeof e)) < 0) ? -1 : e;
+	return (sk_getsockopt(sk, SOL_SOCKET, SO_ERROR, &e, sizeof e) < 0) ? -1 : e;
 }
 
 /*

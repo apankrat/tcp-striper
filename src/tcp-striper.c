@@ -1,76 +1,86 @@
-#include "map.h"
-#include "macros.h"
+#include "event_loop.h"
 #include <stdio.h>
 
-struct foo
+#include "glue/socket.h"
+
+struct sk_context
 {
-	int       val;
-	map_item  m;
+	int sk;
+	event_loop * evl;
 };
 
-typedef struct foo foo;
+typedef struct sk_context sk_context;
 
-int foo_comp(const map_item * a, const map_item * b)
+void on_sk_event(void * context, uint events)
 {
-	return structof(a, foo, m)->val - structof(b, foo, m)->val;
-}
+	sk_context * skx = (sk_context *)context;
 
-int dump_foo_map(map_head * map)
-{
-	map_item * i = NULL;
-	int total;
+	printf("socket %d, events - %c%c%c\n", 
+		skx->sk,
+		(events & SK_EV_readable) ? 'R' : '-',
+		(events & SK_EV_writable) ? 'W' : '-',
+		(events & SK_EV_error)    ? 'X' : '-');
 
-	printf("[");
-	for (total = 0; (i = map_walk(map, i)); total++)
+	if (events & SK_EV_writable)
 	{
-		foo * f = structof(i, foo, m);
-		printf("%d ", f->val);
+		int err = sk_error(skx->sk);
+		if (err)
+		{
+			printf("Connection failed with %d\n", err);
+			skx->evl->del_socket(skx->evl, skx->sk);
+		}
+		else
+		{
+			printf("Connected\n");
+			skx->evl->mod_socket(skx->evl, skx->sk, SK_EV_readable);
+		}
 	}
-	printf("]\n");
-	return total;
-}
 
-int dump_map(map_item * item, char what, int level)
-{
-	if (! item)
+	if (events & SK_EV_error)
 	{
-		printf("%*c: null\n", 4*level, what);
-		return 0;
+		printf("Connection failed with %d\n", sk_error(skx->sk));
+		skx->evl->del_socket(skx->evl, skx->sk);
 	}
-	printf("%*c: %p %p [%d]\n", 4*level, what, item, item->p, structof(item,foo,m)->val);
-	return 1 + 
-	       dump_map(item->l, 'l', level+1) +
-	       dump_map(item->r, 'r', level+1);
 }
 
 int main(int argc, char ** argv)
 {
-	map_head map;
-	foo x[16];
-	int i, n, total;
+	event_loop * evl;
+	sk_context skx;
+	sockaddr_in sa;
 
-	map_init(&map, foo_comp);
+	//
+	evl = new_event_loop_select();
 
-	for (i=0; i<sizeof_array(x); i++)
-	{
-		x[i].val = (i & 1) ? i : -i; // rand() & 0xff;
-		map_add(&map, &x[i].m);
-	}
+	//
+	skx.sk = sk_create(AF_INET, SOCK_STREAM, 0);
+	if (skx.sk < 0)
+		return 1;
 
-	total = dump_map(map.root, 'x', 0);
-	printf("total = %d\n", total);
-	total = dump_foo_map(&map);
-	printf("total = %d\n", total);
-
-	for (i=0, n=sizeof_array(x); i<n; i++)
-	{
-		map_del(&map, &x[i].m);
-	}
+	sk_unblock(skx.sk);
 	
-	total = dump_map(map.root, 'x', 0);
-	printf("total = %d\n", total);
-	total = dump_foo_map(&map);
-	printf("total = %d\n", total);
+	//
+	sockaddr_in_init(&sa);
+	SOCKADDR_IN_ADDR(&sa) = inet_addr("127.0.0.1");
+	SOCKADDR_IN_PORT(&sa) = htons(55555);
+
+	if (sk_connect(skx.sk, (void*)&sa, sizeof sa) < 0 &&
+	    sk_conn_fatal( sk_errno(skx.sk) ))
+	{
+		printf("sk_connect() failed with %d, %d\n", 
+			sk_errno(skx.sk), sk_error(skx.sk));
+	    	return 2;
+	}
+
+	skx.evl = evl;
+	evl->add_socket(evl, skx.sk, SK_EV_writable, on_sk_event, &skx);
+
+	while (1)
+	{
+		evl->monitor(evl, 1000);
+		printf("tick\n");
+	}
 
 	return 0;
 }
+

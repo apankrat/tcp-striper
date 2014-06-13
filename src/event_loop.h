@@ -11,9 +11,11 @@
  *
  *	For connecting sockets:
  *
- *		SK_EV_writable - connection is established
- *		SK_EV_error    - connection setup failed,
- *		                 sk_error() has the error
+ *		Windows: connected -> SK_EV_writable
+ *		         failed    -> SK_EV_error, SO_ERROR is the reason
+ *
+ *		Linux:   connected -> SK_EV_writable, SO_ERROR is 0
+ *		         connected -> SK_EV_writable, SO_ERROR is not 0
  *
  *	For connected sockets:
  *

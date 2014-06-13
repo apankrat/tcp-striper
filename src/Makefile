@@ -1,4 +1,4 @@
-CFLAGS += -Wall -DNDEBUG -g
+CFLAGS += -Wall -DNDEBUG -g -Iglue/linux
 #LDFLAGS += -lcrypto
 
 SRC = \
@@ -26,4 +26,4 @@ tcp-striper: $(OBJS)
 	@$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	rm -f tcp-striper $(OBJS)
+	rm -f tcp-striper $(OBJS) $(OBJS:.o=.d)

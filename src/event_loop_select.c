@@ -176,7 +176,7 @@ void _evl_select_del_socket(event_loop * self, int sk)
 	if (evl->nfds == sk+1)
 	{
 		map_item  * mi = NULL;
-		int max_sk = 0;
+		int max_sk = -1;
 
 		while ( (mi = map_walk(&evl->sockets, mi)) )
 		{
