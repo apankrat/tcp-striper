@@ -46,15 +46,15 @@
  *		int sk_connect(int sk, const sockaddr * a, socklen_t alen); 
  *
  *		int sk_listen(int sk, int backlog);
- *		int sk_accept(int sk, sockaddr * addr, socklen_t alen);
+ *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
  *
- *		int sk_getsockname(int sk, sockaddr * a, socklen_t alen);
- *		int sk_getpeername(int sk, sockaddr * a, socklen_t alen);
+ *		int sk_getsockname(int sk, sockaddr * a, socklen_t * alen);
+ *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
  *		
  *		int sk_recv(int sk, void * p, size_t n, 
- *		            sockaddr * src = NULL, socklen_t alen = 0);
+ *		            sockaddr * src, socklen_t * alen);
  *		int sk_send(int sk, const void * p, size_t n, 
- *		            sockaddr * dst = NULL, socklen_t alen = 0);
+ *		            sockaddr * dst, socklen_t alen);
  *
  *		int sk_getsockopt(int sk, int level, int opt, 
  *		                  void * val, socklen_t vlen);

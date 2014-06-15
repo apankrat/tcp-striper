@@ -82,9 +82,8 @@ int sk_close(int sk)
   *		int sk_connect(int sk, const sockaddr * a, socklen_t alen); 
   *
   *		int sk_listen(int sk, int backlog);
-  *		int sk_accept(int sk, sockaddr * addr, socklen_t alen);
+  *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
   */
-
 inline
 int sk_bind(int sk, const sockaddr * addr, socklen_t alen)
 {
@@ -104,41 +103,41 @@ int sk_listen(int sk, int backlog)
 }
 
 inline
-int sk_accept(int sk, sockaddr * addr, socklen_t alen)
+int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
 {
-	return accept(sk, addr, &alen);
+	return accept(sk, addr, alen);
 }
 
  /*
-  *		int sk_getsockname(int sk, sockaddr * a, socklen_t alen);
-  *		int sk_getpeername(int sk, sockaddr * a, socklen_t alen);
+  *		int sk_getsockname(int sk, sockaddr * a, socklen_t * alen);
+  *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
   */
 
 inline
-int sk_getsockname(int sk, sockaddr * a, socklen_t alen)
+int sk_getsockname(int sk, sockaddr * a, socklen_t * alen)
 {
-	return getsockname(sk, a, &alen);
+	return getsockname(sk, a, alen);
 }
 
 inline
-int sk_getpeername(int sk, sockaddr * a, socklen_t alen)
+int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
 {
-	return getpeername(sk, a, &alen);
+	return getpeername(sk, a, alen);
 }
 
 /*
  *		int sk_recv(int sk, void * p, size_t n, 
- *		            sockaddr * src = NULL, socklen_t alen = 0);
+ *		            sockaddr * src, socklen_t * srclen);
  *		int sk_send(int sk, const void * p, size_t n, 
- *		            sockaddr * dst = NULL, socklen_t alen = 0);
+ *		            sockaddr * dst, socklen_t dstlen);
  */
 
 inline
 int sk_recv(int sk, void * buf, size_t len,
-            sockaddr * src, socklen_t srclen)
+            sockaddr * src, socklen_t * srclen)
 {
 	int r;
-	do { r = recvfrom(sk, buf, len, 0, src, &srclen); }
+	do { r = recvfrom(sk, buf, len, 0, src, srclen); }
 	while (r < 0 && errno == EINTR);
 	return r;
 }

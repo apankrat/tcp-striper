@@ -62,6 +62,5 @@ struct event_loop
  */
 event_loop * new_event_loop_select();
 
-
 #endif
 
