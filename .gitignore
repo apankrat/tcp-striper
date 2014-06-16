@@ -1,2 +1,2 @@
-src/obj
-src/tcp-striper
+*.d
+*.o

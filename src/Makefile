@@ -1,25 +1,29 @@
-CFLAGS += -Wall -DNDEBUG -g -Iglue/linux
-#LDFLAGS += -lcrypto
+CFLAGS += -Wall -DNDEBUG -g \
+	-I. \
+	-Icore \
+	-Idata \
+	-Ievent_loop \
+	-Iglue/linux
 
 SRC = \
-	alloc.c \
-	assert.c \
-	map.c \
-	event_loop_select.c \
+	core/alloc.c \
+	core/assert.c \
+	data/map.c \
+	event_loop/event_loop_select.c \
 	tcp-striper.c
 
-OBJS = $(patsubst %,obj/%, $(subst .c,.o,$(SRC)))
+OBJS = $(patsubst %,_obj/%, $(subst .c,.o,$(SRC)))
 
 all: tcp-striper
 
 -include $(OBJS:.o=.d)
 
-obj/%.o: %.c
+_obj/%.o: %.c
 	@echo c: $<
 	@$(CC) $(CFLAGS) -c $< -o $@
-	@$(CC) $(CFLAGS) -MM $*.c > obj/$*.d
-	@sed -e 's/^/obj\//' < obj/$*.d > obj/$*.dd
-	@mv obj/$*.dd obj/$*.d
+	@$(CC) $(CFLAGS) -MM $*.c > _obj/$*.d
+	@sed -e 's/^/_obj\//' < _obj/$*.d > _obj/$*.dd
+	@mv _obj/$*.dd _obj/$*.d
 
 tcp-striper: $(OBJS)
 	@echo l: $@
