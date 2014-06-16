@@ -37,6 +37,8 @@ void init_connection(connection * c, bridge * b)
 	c->readable = 0;
 	c->fin_rcvd = 0;
 	c->fin_sent = 0;
+	c->rx = 0;
+	c->tx = 0;
 	c->pending = NULL;
 	c->name = (c == &b->c2p) ? "c2p" : "p2s";
 }
@@ -99,10 +101,10 @@ void init_proxy_config(proxy_config * conf)
 
 	conf->backlog = 8;
 
-	conf->c2p_buffer = 1024;
-	conf->p2s_buffer = 1024;
+	conf->c2p_buffer = 1024*1024;
+	conf->p2s_buffer = 1024*1024;
 
-	conf->max_per_cycle = 1024*1024;
+	conf->max_per_cycle = 16*1024*1024;
 }
 
 /*

@@ -48,6 +48,8 @@ struct connection
 	int           readable;
 	int           fin_rcvd;     /* peer sent FIN */
 	int           fin_sent;     /* we sent FIN */
+
+	uint64_t      rx, tx;
 	
 	data_buffer * pending;
 	const char  * name;

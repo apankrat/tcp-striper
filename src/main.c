@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 
 #include "glue/socket.h"
 #include "socket_utils.h"
@@ -188,6 +189,8 @@ void send_pending(connection * conn)
 	sent = sk_send(conn->sk, buf->data, buf->size);
 	if (sent == buf->size)
 	{
+		conn->tx += sent;
+
 		free_data_buffer(conn->pending);
 		conn->pending = NULL;
 		conn->writable = 1;
@@ -196,7 +199,7 @@ void send_pending(connection * conn)
 		 * unless EOF is pending */
 		if (conn->peer->fin_rcvd)
 			send_fin(conn);
-		
+
 		adjust_events_mask(conn);
 	}
 	else
@@ -213,6 +216,8 @@ void send_pending(connection * conn)
 	}
 	else
 	{
+		conn->tx += sent;
+
 		left = buf->size - sent;
 		memmove(buf->data, buf->data+sent, left);
 		buf->size = left;
@@ -257,9 +262,13 @@ void relay_data(connection * src, connection * dst)
 		/* read something */
 		assert(rcvd > 0);
 
+		src->rx += rcvd;
+
 		sent = sk_send(dst->sk, buf->data, rcvd);
 		if (sent == rcvd)
 		{
+			dst->tx += sent;
+
 			sofar += sent;
 			if (sofar > src->b->pxy->conf->max_per_cycle)
 				break;
@@ -281,6 +290,8 @@ void relay_data(connection * src, connection * dst)
 
 		/* partial send */
 		assert(sent < rcvd);
+
+		dst->tx += sent;
 
 		left = rcvd - sent;
 		dst->pending = init_data_buffer(left, buf->data+sent, left);
@@ -342,12 +353,13 @@ const char * sa_to_str(const sockaddr_in * sa, char * buf, size_t max)
 
 void dump_connection(connection * conn)
 {
-	printf("%s  %c%c%c  fin:%c%c", conn->name,
+	printf("%s  %c%c%c  fin:%c%c  tx/rx %llu/%llu", conn->name,
 		conn->connecting ? 'C' : '-',
 		conn->writable ? 'W' : '-',
 		conn->readable ? 'R' : '-',
 		conn->fin_rcvd ? 'R' : '-',
-		conn->fin_sent ? 'S' : '-');
+		conn->fin_sent ? 'S' : '-',
+		conn->tx, conn->rx);
 
 	if (conn->pending)
 		printf(", %u pending", conn->pending->size);
@@ -371,7 +383,7 @@ void dump_proxy_state(proxy_state * pxy)
 	while ( (i = hlist_walk(&pxy->bridges, i)) )
 	{
 		bridge * b = structof(i, bridge, list);
-		
+
 		printf("%p: [", b);
 		dump_connection(&b->c2p);
 		printf("] [");
@@ -385,11 +397,21 @@ void dump_proxy_state(proxy_state * pxy)
 /*
  *
  */
+int enough = 0;
 int dump_status = 0;
+time_t t_break = 0;
 
 void on_signal(int sig)
 {
-	dump_status = 1;
+	time_t now;
+
+	now = time(NULL);
+	if (t_break && (now - t_break < 2))
+		enough = 1;
+	else
+		dump_status = 1;
+
+	t_break = now;
 }
 
 int main(int argc, char ** argv)
@@ -399,7 +421,7 @@ int main(int argc, char ** argv)
 	int yes = 1;
 
 	//
-	signal(SIGUSR1, on_signal);
+	signal(SIGINT, on_signal);
 
 	//
 	init_proxy_config(&conf);
@@ -426,7 +448,7 @@ int main(int argc, char ** argv)
 		state.sk, SK_EV_readable,
 		on_can_accept, &state);
 
-	while (1)
+	while (! enough)
 	{
 		static const char ticker[] = "bdqp";
 		static int phase = 0;

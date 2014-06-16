@@ -81,12 +81,9 @@ This will start a proxy on port 55555 that forwards to
 
   ssh -p 55555 127.0.0.1 
 
-should get you the prompt from the actual sshd. Then, from 
-another console you can issue -
-
-  killall -s SIGUSR1 tcp-striper
-
-and tcp-striper will dump its status. Something like this -
+should get you the prompt from the actual sshd. Then, hit
+Ctrl-C in tcp-striper console and it will dump the summary
+of its status. Something like this -
 
   -- proxy state --
   listening  : 0.0.0.0:55555
@@ -102,6 +99,9 @@ and tcp-striper will dump its status. Something like this -
 For extra points try scp'ing a large file from a remote host 
 to 55555 to see how the bridge responds to stream congestion.
   
+To shutdown tcp-striper, hit Ctrl-C *twice* back to back.
+
+
 
 --------------------------------------------------------------
               Work in progress, a weekend project.
