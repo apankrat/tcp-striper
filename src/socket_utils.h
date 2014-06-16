@@ -43,17 +43,13 @@ int sk_getpeername_ip4(int sk, sockaddr_in * addr)
 	return getpeername(sk, (sockaddr*)addr, &alen);
 }
 
-inline
-int sk_recv_ip4(int sk, void * buf, size_t len, sockaddr_in * src)
+/*
+ *
+ */
+int sk_no_delay(int sk)
 {
-	socklen_t alen = sizeof(*src);
-	return sk_recv(sk, buf, len, (sockaddr*)src, &alen);
-}
-
-inline
-int sk_send_ip4(int sk, void * buf, size_t len, sockaddr_in * dst)
-{
-	return sk_send(sk, buf, len, (sockaddr*)dst, sizeof(*dst));
+	static const int yes = 1;
+	return sk_setsockopt(sk, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 }
 
 #endif

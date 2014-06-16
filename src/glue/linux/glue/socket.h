@@ -58,19 +58,19 @@ typedef struct sockaddr_in  sockaddr_in;
  *		int sk_close(int sk);
  */
 
-inline
+static inline
 int sk_create(int family, int type, int protocol)
 {
 	return socket(family, type, protocol);
 }
 
-inline
+static inline
 int sk_shutdown(int sk)
 {
 	return shutdown(sk, SHUT_WR);
 }
 
-inline
+static inline
 int sk_close(int sk)
 {
 	return close(sk);
@@ -84,25 +84,25 @@ int sk_close(int sk)
   *		int sk_listen(int sk, int backlog);
   *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
   */
-inline
+static inline
 int sk_bind(int sk, const sockaddr * addr, socklen_t alen)
 {
 	return bind(sk, addr, alen);
 }
 
-inline
+static inline
 int sk_connect(int sk, const sockaddr * a, socklen_t alen)
 {
 	return connect(sk, a, alen);
 }
 
-inline
+static inline
 int sk_listen(int sk, int backlog)
 {
 	return listen(sk, backlog);
 }
 
-inline
+static inline
 int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
 {
 	return accept(sk, addr, alen);
@@ -113,28 +113,33 @@ int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
   *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
   */
 
-inline
+static inline
 int sk_getsockname(int sk, sockaddr * a, socklen_t * alen)
 {
 	return getsockname(sk, a, alen);
 }
 
-inline
+static inline
 int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
 {
 	return getpeername(sk, a, alen);
 }
 
 /*
- *		int sk_recv(int sk, void * p, size_t n, 
- *		            sockaddr * src, socklen_t * srclen);
- *		int sk_send(int sk, const void * p, size_t n, 
- *		            sockaddr * dst, socklen_t dstlen);
+ *		int sk_recv(int sk, void * p, size_t n);
+ *
+ *		int sk_recvfrom(int sk, void * p, size_t n, 
+ *		                sockaddr * src, socklen_t * srclen);
+ *
+ *		int sk_send(int sk, const void * p, size_t n);
+ *
+ *		int sk_sendto(int sk, const void * p, size_t n, 
+ *		              sockaddr * dst, socklen_t dstlen);
  */
 
-inline
-int sk_recv(int sk, void * buf, size_t len,
-            sockaddr * src, socklen_t * srclen)
+static inline
+int sk_recvfrom(int sk, void * buf, size_t len,
+                sockaddr * src, socklen_t * srclen)
 {
 	int r;
 	do { r = recvfrom(sk, buf, len, 0, src, srclen); }
@@ -142,14 +147,26 @@ int sk_recv(int sk, void * buf, size_t len,
 	return r;
 }
 
-inline
-int sk_send(int sk, void * buf, size_t len,
-            sockaddr * dst, socklen_t dstlen)
+static inline
+int sk_recv(int sk, void * buf, size_t len)
+{
+	return sk_recvfrom(sk, buf, len, NULL, NULL);
+}
+
+static inline
+int sk_sendto(int sk, void * buf, size_t len,
+              sockaddr * dst, socklen_t dstlen)
 {
 	int r;
 	do { r = sendto(sk, buf, len, 0, dst, dstlen); }
 	while (r < 0 && errno == EINTR);
 	return r;
+}
+
+static inline
+int sk_send(int sk, void * buf, size_t len)
+{
+	return sk_sendto(sk, buf, len, NULL, 0);
 }
 
 /*
@@ -159,13 +176,14 @@ int sk_send(int sk, void * buf, size_t len,
  *		                  const void * val, socklen_t vlen);
  */
 
-inline
+static inline
 int sk_getsockopt(int sk, int level, int opt,
                   void * val, socklen_t vlen)
 {
 	return getsockopt(sk, level, opt, val, &vlen);
 }
 
+static inline
 int sk_setsockopt(int sk, int level, int opt,
                   const void * val, socklen_t vlen)
 {
@@ -181,20 +199,20 @@ int sk_setsockopt(int sk, int level, int opt,
  *		int sk_error(int sk); // aka "slow", getsockopt(so_error)
  */
 
-inline
+static inline
 int sk_unblock(int sk)
 {
 	int r = fcntl(sk, F_GETFL);
 	return (r < 0) ? r : fcntl(sk, F_SETFL, r | O_NONBLOCK);	
 }
 
-inline
+static inline
 int sk_errno()
 {
 	return errno;
 }
 
-inline
+static inline
 int sk_error(int sk)
 {
 	int e;
@@ -210,33 +228,33 @@ int sk_error(int sk)
  *		int sk_conn_timeout(int err);
  */
 
-inline
+static inline
 int sk_conn_fatal(int err)
 {
 	return (err != EINTR && err != EINPROGRESS);
 }
 
-inline
+static inline
 int sk_recv_fatal(int err)
 {
 	return (err != EINTR && err != EAGAIN &&
 	        err != ENOMEM && err != EWOULDBLOCK);
 }
 
-inline
+static inline
 int sk_send_fatal(int err)
 {
 	return (err != EINTR && err != EAGAIN &&
 	        err != ENOMEM && err != EWOULDBLOCK);
 }
 
-inline
+static inline
 int sk_conn_refused(int err)
 {
 	return (err == ECONNREFUSED);
 }
 
-inline
+static inline
 int sk_conn_timeout(int err)
 {
 	return (err == ETIMEDOUT);
@@ -248,6 +266,7 @@ int sk_conn_timeout(int err)
  *		SOCKADDR_IN_ADDR(sa)
  *		SOCKADDR_IN_PORT(sa)
  */
+static inline
 void sockaddr_in_init(sockaddr_in * sa)
 {
 	static sockaddr_in sa_zero = { 0 };

@@ -51,10 +51,13 @@
  *		int sk_getsockname(int sk, sockaddr * a, socklen_t * alen);
  *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
  *		
- *		int sk_recv(int sk, void * p, size_t n, 
- *		            sockaddr * src, socklen_t * alen);
- *		int sk_send(int sk, const void * p, size_t n, 
- *		            sockaddr * dst, socklen_t alen);
+ *		int sk_recv(int sk, void * p, size_t n);
+ *		int sk_recvfrom(int sk, void * p, size_t n, 
+ *		                sockaddr * src, socklen_t * alen);
+ *
+ *		int sk_send(int sk, const void * p, size_t n);
+ *		int sk_sendto(int sk, const void * p, size_t n, 
+ *		              sockaddr * dst, socklen_t alen);
  *
  *		int sk_getsockopt(int sk, int level, int opt, 
  *		                  void * val, socklen_t vlen);

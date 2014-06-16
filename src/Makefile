@@ -10,11 +10,13 @@ SRC = \
 	core/assert.c \
 	data/map.c \
 	event_loop/event_loop_select.c \
-	tcp-striper.c
+	data_buffer.c \
+	proxy_types.c \
+	tcp_striper.c
 
 OBJS = $(patsubst %,_obj/%, $(subst .c,.o,$(SRC)))
 
-all: tcp-striper
+all: tcp_striper
 
 -include $(OBJS:.o=.d)
 
@@ -25,9 +27,9 @@ _obj/%.o: %.c
 	@sed -e 's/^/_obj\//' < _obj/$*.d > _obj/$*.dd
 	@mv _obj/$*.dd _obj/$*.d
 
-tcp-striper: $(OBJS)
+tcp_striper: $(OBJS)
 	@echo l: $@
 	@$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	rm -f tcp-striper $(OBJS) $(OBJS:.o=.d)
+	rm -f tcp_striper $(OBJS) $(OBJS:.o=.d)

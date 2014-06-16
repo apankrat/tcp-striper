@@ -26,20 +26,20 @@ struct hlist_item
 /*
  *
  */
-inline
+static inline
 void hlist_init(hlist_head * h)
 {
 	h->first = NULL;
 }
 
-inline
+static inline
 void hlist_init_item(hlist_item * i)
 {
 	i->pprev = NULL;
 	i->next = NULL;
 }
 
-inline
+static inline
 void hlist_add_front(hlist_head * h, hlist_item * i)
 {
 	i->next = h->first;
@@ -49,7 +49,7 @@ void hlist_add_front(hlist_head * h, hlist_item * i)
 	h->first = i;
 }
 
-inline
+static inline
 void hlist_del(hlist_item * i)
 {
 	if (! i->pprev)
@@ -62,7 +62,7 @@ void hlist_del(hlist_item * i)
 	hlist_init_item(i);
 }
 
-inline
+static inline
 hlist_item * hlist_walk(hlist_head * head, hlist_item * now)
 {
 	return now ? now->next : head->first;

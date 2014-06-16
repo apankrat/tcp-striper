@@ -1,8 +1,9 @@
-#include "event_loop.h"
-#include "list.h"
 #include "assert.h"
-#include "alloc.h"
 #include "macros.h"
+#include "alloc.h"
+
+#include "list.h"
+#include "event_loop.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -10,221 +11,8 @@
 
 #include "glue/socket.h"
 #include "socket_utils.h"
-
-/*
- *
- */
-struct proxy_config
-{
-	sockaddr_in  sa_listen;
-	sockaddr_in  sa_server;
-	int          backlog;
-
-	size_t       c2p_buffer;
-	size_t       p2s_buffer;
-
-	size_t       max_per_cycle;
-};
-
-typedef struct proxy_config proxy_config;
-
-void init_proxy_config(proxy_config * conf)
-{
-	sockaddr_in_init(&conf->sa_listen);
-	SOCKADDR_IN_ADDR(&conf->sa_listen) = 0;
-	SOCKADDR_IN_PORT(&conf->sa_listen) = htons(55555);
-
-	sockaddr_in_init(&conf->sa_server);
-	SOCKADDR_IN_ADDR(&conf->sa_server) = inet_addr("127.0.0.1");
-	SOCKADDR_IN_PORT(&conf->sa_server) = htons(22);
-
-	conf->backlog = 8;
-
-	conf->c2p_buffer = 1024;
-	conf->p2s_buffer = 1024;
-
-	conf->max_per_cycle = 1024*1024;
-}
-
-/*
- *
- */
-struct data_buffer
-{
-	size_t capacity;
-	size_t size;
-	char   data[1];
-};
-
-typedef struct data_buffer data_buffer;
-
-data_buffer * alloc_data_buffer(size_t capacity)
-{
-	data_buffer * buf;
-	size_t need;
-
-	need = sizeof(data_buffer) - 1 + capacity;
-	buf = (data_buffer *)heap_alloc(need);
-
-	buf->capacity = capacity;
-	buf->size = 0;
-	return buf;
-}
-
-data_buffer * init_data_buffer(size_t capacity, void * data, size_t size)
-{
-	data_buffer * buf;
-	
-	assert(data && size && capacity >= size);
-
-	buf = alloc_data_buffer(capacity);
-	buf->size = size;
-	memcpy(buf->data, data, size);
-
-	return buf;
-}
-
-void free_data_buffer(data_buffer * buf)
-{
-	heap_free(buf);
-}
-
-/*
- *
- */
-struct proxy_state
-{
-	proxy_config * conf;
-	event_loop   * evl;
-
-	int sk;                   /* listening on pxy_addr:pxy_port */
-
-	hlist_head     bridges;
-	data_buffer  * buf;       /* shared IO buffer */
-};
-
-typedef struct proxy_state proxy_state;
-
-void init_proxy_state(proxy_state * state, proxy_config * conf)
-{
-	size_t capacity;
-	
-	capacity = (conf->c2p_buffer < conf->p2s_buffer) ? 
-		conf->p2s_buffer : conf->c2p_buffer;
-	
-	state->conf = conf;
-	state->evl = new_event_loop_select();
-	state->buf = alloc_data_buffer(capacity);
-
-	hlist_init(&state->bridges);
-}
-
-/*
- *
- */
-struct connection
-{
-	struct bridge * b;
-	struct connection * peer;
-
-	size_t        recv_max;
-
-	sockaddr_in   sa_peer;
-	sockaddr_in   sa_self;
-	int           sk;
-
-	int           connecting;
-	int           writable;
-	int           readable;
-	int           fin_rcvd;     /* peer sent FIN */
-	int           fin_sent;     /* we sent FIN */
-	
-	data_buffer * pending;
-	const char  * name;
-};
-
-typedef struct connection connection;
-
-/*
- *
- */
-struct bridge
-{
-	proxy_state * pxy;
-
-	connection    c2p;
-	connection    p2s;
-
-	hlist_item    list; /* proxy_state.bridge */
-};
-
-typedef struct bridge bridge;
-
-/*
- *
- */
-void init_connection(connection * c, struct bridge * b)
-{
-	proxy_config * conf = b->pxy->conf;
-	int c2p = (c == &b->c2p);
-
-	c->b = b;
-	c->peer = c2p ? &b->p2s : &b->c2p;
-	c->recv_max = c2p ? conf->c2p_buffer : conf->p2s_buffer;
-	sockaddr_in_init(&c->sa_peer);
-	sockaddr_in_init(&c->sa_self);
-	c->sk = -1;
-	c->connecting = 0;
-	c->writable = 0;
-	c->readable = 0;
-	c->fin_rcvd = 0;
-	c->fin_sent = 0;
-	c->pending = NULL;
-	c->name = (c == &b->c2p) ? "c2p" : "p2s";
-}
-
-void term_connection(connection * c)
-{
-	if (c->pending)
-		free_data_buffer(c->pending);
-
-	if (c->sk == -1)
-		return;
-
-	assert(c->b);
-
-	if (c->b->pxy && c->b->pxy->evl)
-		c->b->pxy->evl->del_socket(c->b->pxy->evl, c->sk);
-
-	sk_close(c->sk);
-	c->sk = -1;
-}
-
-/*
- *
- */
-bridge * alloc_bridge(proxy_state * pxy)
-{
-	bridge * b = heap_alloc(sizeof *b);
-
-	b->pxy = pxy;
-	
-	init_connection(&b->c2p, b);
-	init_connection(&b->p2s, b);
-
-	hlist_init_item(&b->list);
-
-	return b;
-}
-
-void discard_bridge(bridge * b)
-{
-	term_connection(&b->c2p);
-	term_connection(&b->p2s);
-	hlist_del(&b->list);
-	heap_free(b);
-printf("Bridge %p discarded\n", b);
-}
+#include "data_buffer.h"
+#include "proxy_types.h"
 
 /*
  *
@@ -242,14 +30,7 @@ void on_recv_failed(connection * conn);
 void on_send_failed(connection * conn);
 void on_conn_eof(connection * conn);
 
-/*
- *
- */
-int sk_no_delay(int sk)
-{
-	static const int yes = 1;
-	return sk_setsockopt(sk, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
-}
+
 
 void on_can_accept(void * ctx, uint events)
 {
@@ -403,7 +184,7 @@ void send_pending(connection * conn)
 
 	assert(conn->pending && ! conn->writable);
 
-	sent = sk_send_ip4(conn->sk, buf->data, buf->size, NULL);
+	sent = sk_send(conn->sk, buf->data, buf->size);
 	if (sent == buf->size)
 	{
 printf("%s: flushed %d bytes\n", conn->name, buf->size);
@@ -452,7 +233,7 @@ void relay_data(connection * src, connection * dst)
 
 	for (;;)
 	{
-		rcvd = sk_recv_ip4(src->sk, buf->data, src->recv_max, NULL);
+		rcvd = sk_recv(src->sk, buf->data, src->recv_max);
 		if (rcvd == 0)
 		{
 			on_conn_eof(src);
@@ -479,7 +260,7 @@ printf("%s: read failed with %d\n", src->name, sk_errno(src->sk));
 
 printf("%s: read %d bytes\n", src->name, rcvd);
 
-		sent = sk_send_ip4(dst->sk, buf->data, rcvd, NULL);
+		sent = sk_send(dst->sk, buf->data, rcvd);
 		if (sent == rcvd)
 		{
 printf("%s: sent\n", dst->name);
