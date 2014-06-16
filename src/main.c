@@ -21,8 +21,10 @@
 #include <signal.h>
 #include <time.h>
 
-#include "glue/socket.h"
+#include "socket.h"
 #include "socket_utils.h"
+#include "termio.h"
+
 #include "data_buffer.h"
 #include "proxy_types.h"
 
@@ -216,7 +218,10 @@ void send_pending(connection * conn)
 	}
 	else
 	{
+		/* recongested */
+
 		conn->tx += sent;
+		conn->congestions++;
 
 		left = buf->size - sent;
 		memmove(buf->data, buf->data+sent, left);
@@ -292,6 +297,7 @@ void relay_data(connection * src, connection * dst)
 		assert(sent < rcvd);
 
 		dst->tx += sent;
+		dst->congestions++;
 
 		left = rcvd - sent;
 		dst->pending = init_data_buffer(left, buf->data+sent, left);
@@ -341,25 +347,25 @@ void on_conn_eof(connection * conn)
  */
 const char * sa_to_str(const sockaddr_in * sa, char * buf, size_t max)
 {
-	snprintf(buf, max, "%u.%u.%u.%u:%u",
-		(SOCKADDR_IN_ADDR(sa) >> 24) & 0xFF,
-		(SOCKADDR_IN_ADDR(sa) >> 16) & 0xFF,
-		(SOCKADDR_IN_ADDR(sa) >>  8) & 0xFF,
-		(SOCKADDR_IN_ADDR(sa) >>  0) & 0xFF,
-		htons(SOCKADDR_IN_PORT(sa)));
+	uint32_t addr = htonl( SOCKADDR_IN_ADDR(sa) );
+	uint16_t port = htons( SOCKADDR_IN_PORT(sa) );
+	snprintf(buf, max, "%u.%u.%u.%u:%hu",
+		(addr >>  0) & 0xFF,(addr >>  8) & 0xFF,
+		(addr >> 16) & 0xFF,(addr >> 24) & 0xFF, port);
 
 	return buf;
 }
 
 void dump_connection(connection * conn)
 {
-	printf("%s  %c%c%c  fin:%c%c  tx/rx %llu/%llu", conn->name,
+	printf("%s  %c%c%c  fin:%c%c  tx/rx %llu/%llu  cong %u", conn->name,
 		conn->connecting ? 'C' : '-',
 		conn->writable ? 'W' : '-',
 		conn->readable ? 'R' : '-',
 		conn->fin_rcvd ? 'R' : '-',
 		conn->fin_sent ? 'S' : '-',
-		conn->tx, conn->rx);
+		conn->tx, conn->rx, 
+		conn->congestions);
 
 	if (conn->pending)
 		printf(", %u pending", conn->pending->size);
@@ -391,27 +397,17 @@ void dump_proxy_state(proxy_state * pxy)
 		printf("]\n");
 	}
 
-	printf("-----------------\n");
+	printf("\n");
 }
 
 /*
  *
  */
-int enough = 0;
 int dump_status = 0;
-time_t t_break = 0;
 
-void on_signal(int sig)
+void on_stdin_event(void * ctx, uint events)
 {
-	time_t now;
-
-	now = time(NULL);
-	if (t_break && (now - t_break < 2))
-		enough = 1;
-	else
-		dump_status = 1;
-
-	t_break = now;
+	dump_status |= (getchar() == 0x1B);
 }
 
 int main(int argc, char ** argv)
@@ -421,11 +417,14 @@ int main(int argc, char ** argv)
 	int yes = 1;
 
 	//
-	signal(SIGINT, on_signal);
-
-	//
 	init_proxy_config(&conf);
 	init_proxy_state(&state, &conf);
+
+	//
+	term_set_buffering(STDIN_FILENO, 0);
+	term_set_echo(STDIN_FILENO, 0);
+
+	state.evl->add_socket(state.evl, 1, SK_EV_readable, on_stdin_event, NULL);
 
 	//
 	state.sk = sk_create(AF_INET, SOCK_STREAM, 0);
@@ -448,14 +447,23 @@ int main(int argc, char ** argv)
 		state.sk, SK_EV_readable,
 		on_can_accept, &state);
 
-	while (! enough)
+	while (1)
 	{
-		static const char ticker[] = "bdqp";
-		static int phase = 0;
+		state.evl->monitor(state.evl, 100);
 
-		state.evl->monitor(state.evl, 150);
-		printf("   %c\r", ticker[ phase++ % (sizeof(ticker)-1) ]);
-		fflush(stdout);
+		{{
+			static const char ticker[] = "bdqp";
+			static int phase = 0;
+			static time_t last = 0;
+			time_t now = time(NULL);
+
+			if (now != last)
+			{
+				printf("   %c\r", ticker[ phase++ % (sizeof(ticker)-1) ]);
+				fflush(stdout);
+				last = now;
+			}
+		}}
 
 		if (dump_status)
 		{

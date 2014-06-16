@@ -15,7 +15,7 @@
 #ifndef _SOCKET_UTILS_H_tcpstriper_
 #define _SOCKET_UTILS_H_tcpstriper_
 
-#include "glue/socket.h"
+#include "socket.h"
 
 /*
  *	Some inlines so not to carry around

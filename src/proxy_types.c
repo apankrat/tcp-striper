@@ -28,6 +28,8 @@ void init_connection(connection * c, bridge * b)
 
 	c->b = b;
 	c->peer = c2p ? &b->p2s : &b->c2p;
+	c->name = (c == &b->c2p) ? "c2p" : "p2s";
+
 	c->recv_max = c2p ? conf->c2p_buffer : conf->p2s_buffer;
 	sockaddr_in_init(&c->sa_peer);
 	sockaddr_in_init(&c->sa_self);
@@ -37,10 +39,11 @@ void init_connection(connection * c, bridge * b)
 	c->readable = 0;
 	c->fin_rcvd = 0;
 	c->fin_sent = 0;
+	c->pending = NULL;
+
 	c->rx = 0;
 	c->tx = 0;
-	c->pending = NULL;
-	c->name = (c == &b->c2p) ? "c2p" : "p2s";
+	c->congestions = 0;
 }
 
 static

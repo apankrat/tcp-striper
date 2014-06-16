@@ -1,15 +1,17 @@
 CFLAGS += -Wall -DNDEBUG -g \
 	-I. \
-	-Icore \
-	-Idata \
-	-Ievent_loop \
-	-Iglue/linux
+	-Icore/inc \
+	-Idata/inc \
+	-Ievent_loop/inc \
+	-Isystem/inc.linux \
+	-Isystem/inc
 
 SRC = \
-	core/alloc.c \
-	core/assert.c \
-	data/map.c \
-	event_loop/event_loop_select.c \
+	core/src/alloc.c \
+	core/src/assert.c \
+	data/src/map.c \
+	event_loop/src.linux/event_loop_select.c \
+	system/src.linux/termio.c \
 	data_buffer.c \
 	proxy_types.c \
 	main.c
@@ -22,6 +24,7 @@ all: tcp-striper
 
 _obj/%.o: %.c
 	@echo c: $<
+	@mkdir -p _obj/$(dir $<)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@$(CC) $(CFLAGS) -MM $*.c > _obj/$*.d
 	@sed -e 's/^/_obj\//' < _obj/$*.d > _obj/$*.dd
@@ -32,4 +35,4 @@ tcp-striper: $(OBJS)
 	@$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	rm -f tcp-striper $(OBJS) $(OBJS:.o=.d)
+	rm -rf tcp-striper _obj/*

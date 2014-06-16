@@ -19,7 +19,7 @@
 #include "list.h"
 #include "event_loop.h"
 #include "data_buffer.h"
-#include "glue/socket.h"
+#include "socket.h"
 
 /*
  *
@@ -36,6 +36,7 @@ struct connection
 {
 	bridge      * b;
 	connection  * peer;
+	const char  * name;
 
 	size_t        recv_max;
 
@@ -48,11 +49,11 @@ struct connection
 	int           readable;
 	int           fin_rcvd;     /* peer sent FIN */
 	int           fin_sent;     /* we sent FIN */
-
-	uint64_t      rx, tx;
 	
 	data_buffer * pending;
-	const char  * name;
+
+	uint64_t      rx, tx;
+	size_t        congestions;
 };
 
 struct bridge
