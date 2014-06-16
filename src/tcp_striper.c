@@ -2,9 +2,6 @@
 #include "macros.h"
 #include "alloc.h"
 
-#include "list.h"
-#include "event_loop.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
@@ -26,33 +23,32 @@ void adjust_events_mask(connection * conn);
 void relay_data(connection * src, connection * dst);
 void send_pending(connection * conn);
 void send_fin(connection * conn);
-void on_recv_failed(connection * conn);
-void on_send_failed(connection * conn);
+void on_recv_failed(connection * conn, int err);
+void on_send_failed(connection * conn, int err);
 void on_conn_eof(connection * conn);
 
-
-
+/*
+ *
+ */
 void on_can_accept(void * ctx, uint events)
 {
 	proxy_state * pxy = (proxy_state*)ctx;
 	bridge * b;
 
-printf("Can accept\n");
-
 	b = alloc_bridge(pxy);
 
+	/* accept the connection */
 	b->c2p.sk = sk_accept_ip4(pxy->sk, &b->c2p.sa_peer);
 	if (b->c2p.sk < 0)
 		goto err;
-	
+
 	if (sk_unblock(b->c2p.sk) < 0)
 		goto err;
 
 	if (sk_no_delay(b->c2p.sk) < 0)
 		goto err;
 
-printf("Accepted\n");
-
+	/* connect to the server */
 	b->p2s.sk = sk_create(AF_INET, SOCK_STREAM, 0);
 	if (b->p2s.sk < 0)
 		goto err;
@@ -67,11 +63,9 @@ printf("Accepted\n");
 	    sk_conn_fatal(sk_errno(b->p2s.sk)))
 	    	goto err;
 
-printf("Connecting p2s...\n");
-
 	/* connected or in-progress */
 	b->p2s.connecting = 1;
-	
+
 	hlist_add_front(&pxy->bridges, &b->list);
 
 	pxy->evl->add_socket(pxy->evl, 
@@ -87,15 +81,16 @@ err:
 void on_p2s_connected(void * ctx, uint events)
 {
 	connection * conn = (connection *)ctx;
+	bridge     * b = conn->b;
+	event_loop * evl = b->pxy->evl;
 	int err;
 
 	assert(conn->connecting);
 	assert(conn == &conn->b->p2s);
 
 	err = sk_error(conn->sk);
-printf("Connection completed with %d\n", err);
-	if (  (events & SK_EV_error) ||
-	     ((events & SK_EV_writable) && (err != 0)) )
+	if ( (events & SK_EV_error) ||
+	    ((events & SK_EV_writable) && (err != 0)) )
 	{
 		/* connection failed */
 		discard_bridge(conn->b);
@@ -104,24 +99,19 @@ printf("Connection completed with %d\n", err);
 
 	assert(events & SK_EV_writable);
 
+	/* connected to the server */
 	conn->connecting = 0;
 	conn->writable = 1;
-	conn->b->pxy->evl->del_socket(conn->b->pxy->evl, conn->sk);
+	evl->del_socket(evl, conn->sk);
 
-	activate_bridge(conn->b);
-}
-
-void activate_bridge(bridge * b)
-{
-	b->pxy->evl->add_socket(b->pxy->evl,
+	/* activate bridge */
+	evl->add_socket(evl,
 		b->c2p.sk, SK_EV_readable | SK_EV_writable,
 		on_conn_activity, &b->c2p);
 
-	b->pxy->evl->add_socket(b->pxy->evl,
-		b->p2s.sk, SK_EV_readable,
+	evl->add_socket(evl,
+		conn->b->p2s.sk, SK_EV_readable,
 		on_conn_activity, &b->p2s);
-
-printf("Bridge activated\n");
 }
 
 
@@ -131,7 +121,6 @@ void on_conn_activity(void * ctx, uint events)
 
 	if (events & SK_EV_writable)
 	{
-printf("%s: writable\n", conn->name);
 		if (! conn->pending)
 		{
 			conn->writable = 1;
@@ -148,12 +137,16 @@ printf("%s: writable\n", conn->name);
 
 	if (events & SK_EV_readable)
 	{
-printf("%s: readable\n", conn->name);
 		conn->readable = 1;
 		adjust_events_mask(conn);
 
 		if (conn->peer->writable)
 			relay_data(conn, conn->peer);
+	}
+
+	if (events & SK_EV_error)
+	{
+		discard_bridge(conn->b);
 	}
 }
 
@@ -169,31 +162,24 @@ void adjust_events_mask(connection * conn)
 		mask |= SK_EV_writable;
 
 	evl->mod_socket(evl, conn->sk, mask);
-
-printf("%s: have %c%c, monitoring %c%c\n", conn->name,
-	conn->readable ? 'R' : '-',
-	conn->writable ? 'W' : '-',
-	(mask & SK_EV_readable) ? 'R' : '-',
-	(mask & SK_EV_writable) ? 'W' : '-');
 }
 
 void send_pending(connection * conn)
 {
 	data_buffer * buf = conn->pending;
-	int sent, left;
+	int sent, left, err;
 
 	assert(conn->pending && ! conn->writable);
 
 	sent = sk_send(conn->sk, buf->data, buf->size);
 	if (sent == buf->size)
 	{
-printf("%s: flushed %d bytes\n", conn->name, buf->size);
 		free_data_buffer(conn->pending);
 		conn->pending = NULL;
 		conn->writable = 1;
-		/* now writable again */
 
-		/* ... unless EOF is pending */
+		/* now writable again    *
+		 * unless EOF is pending */
 		if (conn->peer->fin_rcvd)
 			send_fin(conn);
 		
@@ -202,10 +188,10 @@ printf("%s: flushed %d bytes\n", conn->name, buf->size);
 	else
 	if (sent < 0)
 	{
-printf("%s: flush of %d bytes failed with %d\n", conn->name, buf->size, sk_errno(conn->sk));
-		if (sk_send_fatal(sk_errno(conn->sk)))
+		err = sk_errno(conn->sk);
+		if (sk_send_fatal(err))
 		{
-			on_send_failed(conn);
+			on_send_failed(conn, err);
 			return;
 		}
 
@@ -214,7 +200,6 @@ printf("%s: flush of %d bytes failed with %d\n", conn->name, buf->size, sk_errno
 	else
 	{
 		left = buf->size - sent;
-printf("%s: flushed %d bytes, %d remains\n", conn->name, sent, left);
 		memmove(buf->data, buf->data+sent, left);
 		buf->size = left;
 
@@ -225,7 +210,7 @@ printf("%s: flushed %d bytes, %d remains\n", conn->name, sent, left);
 void relay_data(connection * src, connection * dst)
 {
 	data_buffer * buf = src->b->pxy->buf;
-	int rcvd, sent, left;
+	int rcvd, sent, left, err;
 	size_t sofar = 0;
 
 	assert(src->readable && dst->writable && ! dst->pending);
@@ -242,10 +227,10 @@ void relay_data(connection * src, connection * dst)
 
 		if (rcvd < 0)
 		{
-printf("%s: read failed with %d\n", src->name, sk_errno(src->sk));
-			if (sk_recv_fatal(sk_errno(src->sk)))
+			err = sk_errno(src->sk);
+			if (sk_recv_fatal(err))
 			{
-				on_recv_failed(src);
+				on_recv_failed(src, err);
 			}
 			else
 			{
@@ -258,24 +243,22 @@ printf("%s: read failed with %d\n", src->name, sk_errno(src->sk));
 		/* read something */
 		assert(rcvd > 0);
 
-printf("%s: read %d bytes\n", src->name, rcvd);
-
 		sent = sk_send(dst->sk, buf->data, rcvd);
 		if (sent == rcvd)
 		{
-printf("%s: sent\n", dst->name);
 			sofar += sent;
 			if (sofar > src->b->pxy->conf->max_per_cycle)
 				break;
+
 			continue;
 		}
 
 		if (sent < 0)
 		{
-printf("%s: send failed with %d\n", dst->name, sk_errno(dst->sk));
-			if (sk_send_fatal(sk_errno(dst->sk)))
+			err = sk_errno(src->sk);
+			if (sk_send_fatal(err))
 			{
-				on_send_failed(dst);
+				on_send_failed(dst, err);
 				break;
 			}
 
@@ -286,7 +269,6 @@ printf("%s: send failed with %d\n", dst->name, sk_errno(dst->sk));
 		assert(sent < rcvd);
 
 		left = rcvd - sent;
-printf("%s: partial send, %d bytes queued\n", dst->name, left);
 		dst->pending = init_data_buffer(left, buf->data+sent, left);
 
 		dst->writable = 0;
@@ -309,21 +291,18 @@ void send_fin(connection * conn)
 		discard_bridge(conn->b);
 }
 
-void on_recv_failed(connection * conn)
+void on_recv_failed(connection * conn, int err)
 {
-printf("%s: recv failed\n", conn->name);
 	discard_bridge(conn->b);
 }
 
-void on_send_failed(connection * conn)
+void on_send_failed(connection * conn, int err)
 {
-printf("%s: send failed\n", conn->name);
 	discard_bridge(conn->b);
 }
 
 void on_conn_eof(connection * conn)
 {
-printf("%s: got FIN\n", conn->name);
 	conn->fin_rcvd = 1;
 	conn->readable = 0;
 	adjust_events_mask(conn);
@@ -425,7 +404,7 @@ int main(int argc, char ** argv)
 
 	if (sk_bind_ip4(state.sk, &conf.sa_listen) < 0)
 		return 3;
-	
+
 	if (sk_listen(state.sk, conf.backlog) < 0)
 		return 4;
 
