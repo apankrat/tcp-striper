@@ -1,0 +1,71 @@
+
+
+                           Tcp-striper
+			   -----------
+                        (from "to stripe")
+
+
+
+                         --  SUMMARY  --
+
+
+Have
+
+      +--------+                                    +--------+
+      |        |                                    |        |
+      | Peer A |  <------[ TCP connection ]------>  | Peer B |
+      |        |                                    |        |
+      +--------+                                    +--------+
+
+Want
+
+      +--------+        +---+          +---+        +--------+
+      |        |        |   |  <---->  |   |        |        |
+      | Peer A |  <-->  | P |  <---->  | P |  <-->  | Peer B |
+      |        |        |   |  <---->  |   |        |        |
+      +--------+        +---+          +---+        +--------+
+
+
+That is - to splice a pair of intermediate proxies into a TCP
+connection and then have them talk via multiple TCP streams in 
+parallel.
+
+
+In particular, if an active stream between the proxies gets
+congested, they would switch to another non-congested stream.
+This should help proxies push more traffic through if/when
+there are per-stream caps on the route between A and B. Like
+the ones my cable provider has :)
+
+
+
+                         --  STATUS  --
+
+
+28/08/14
+
+  * Initial public offering (via github upload)
+
+27/08/14
+
+  * Simple TCP proxy with tracking of per-leg congestion
+    (proxy_types.*)
+
+26/08/14
+
+  * Select-based event loop
+    (event_loop/*)
+
+25/08/14
+
+  * Abstracted socket API (glue/*/socket.h)
+  * Basic data containers (map is unbalanced!)
+  * Basic app scaffolding (asserts, types, macros)
+  * Makefile
+
+
+
+--------------------------------------------------------------
+              Work in progress, a weekend project.
+--------------------------------------------------------------
+
