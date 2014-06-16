@@ -14,6 +14,7 @@ SRC = \
 	system/src.linux/termio.c \
 	data_buffer.c \
 	proxy_types.c \
+	socket_utils.c \
 	main.c
 
 OBJS = $(patsubst %,_obj/%, $(subst .c,.o,$(SRC)))
