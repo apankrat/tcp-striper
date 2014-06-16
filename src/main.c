@@ -1,3 +1,17 @@
+/*
+ *	This file is a part of the tcp-striper project.
+ *	Copyright (c) 2004-2011 Alex Pankratov.
+ *
+ *	http://github.com/apankrat/tcp-striper
+ */
+
+/*
+ *	The program is distributed under terms of BSD license.
+ *	You can obtain the copy of the license by visiting:
+ *
+ *	http://www.opensource.org/licenses/bsd-license.php
+ */
+
 #include "assert.h"
 #include "macros.h"
 #include "alloc.h"
@@ -339,7 +353,7 @@ void dump_connection(connection * conn)
 		printf(", %u pending", conn->pending->size);
 }
 
-void dump_pxy_state(proxy_state * pxy)
+void dump_proxy_state(proxy_state * pxy)
 {
 	char buf[64];
 	hlist_item * i = NULL;
@@ -424,7 +438,7 @@ int main(int argc, char ** argv)
 		if (dump_status)
 		{
 			dump_status = 0;
-			dump_pxy_state(&state);
+			dump_proxy_state(&state);
 		}
 	}
 

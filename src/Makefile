@@ -12,11 +12,11 @@ SRC = \
 	event_loop/event_loop_select.c \
 	data_buffer.c \
 	proxy_types.c \
-	tcp_striper.c
+	main.c
 
 OBJS = $(patsubst %,_obj/%, $(subst .c,.o,$(SRC)))
 
-all: tcp_striper
+all: tcp-striper
 
 -include $(OBJS:.o=.d)
 
@@ -27,9 +27,9 @@ _obj/%.o: %.c
 	@sed -e 's/^/_obj\//' < _obj/$*.d > _obj/$*.dd
 	@mv _obj/$*.dd _obj/$*.d
 
-tcp_striper: $(OBJS)
+tcp-striper: $(OBJS)
 	@echo l: $@
 	@$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	rm -f tcp_striper $(OBJS) $(OBJS:.o=.d)
+	rm -f tcp-striper $(OBJS) $(OBJS:.o=.d)

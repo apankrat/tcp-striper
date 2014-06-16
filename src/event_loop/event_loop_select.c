@@ -1,3 +1,17 @@
+/*
+ *	This file is a part of the tcp-striper project.
+ *	Copyright (c) 2004-2011 Alex Pankratov.
+ *
+ *	http://github.com/apankrat/tcp-striper
+ */
+
+/*
+ *	The program is distributed under terms of BSD license.
+ *	You can obtain the copy of the license by visiting:
+ *
+ *	http://www.opensource.org/licenses/bsd-license.php
+ */
+
 #include "event_loop.h"
 
 #include <sys/select.h>
@@ -305,20 +319,4 @@ event_loop * new_event_loop_select()
 
 	return &evl->api;
 }
-
-#if 0
-
-	void (* discard)(event_loop * self);
-
-
-
- int select(int nfds, fd_set *readfds, fd_set *writefds,
-                  fd_set *exceptfds, struct timeval *timeout);
-
-       void FD_CLR(int fd, fd_set *set);
-       int  FD_ISSET(int fd, fd_set *set);
-       void FD_SET(int fd, fd_set *set);
-       void FD_ZERO(fd_set *set);
-
-#endif
 
