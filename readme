@@ -65,6 +65,44 @@ the ones my cable provider has :)
 
 
 
+                         --  TO PLAY  --
+
+Build it first -
+
+  cd src
+  make
+
+Launch it -
+
+  ./tcp-striper
+
+This will start a proxy on port 55555 that forwards to 
+127.0.0.1:22, i.e. the SSH port. So doing this -
+
+  ssh -p 55555 127.0.0.1 
+
+should get you the prompt from the actual sshd. Then, from 
+another console you can issue -
+
+  killall -s SIGUSR1 tcp-striper
+
+and tcp-striper will dump its status. Something like this -
+
+  -- proxy state --
+  listening  : 0.0.0.0:55555
+    backlog  : 8
+  connecting : 127.0.0.1:22
+  c2p buffer : 1024
+  p2s buffer : 1024
+  max read   : 1048576 /cycle
+  ---- bridges ----
+  0x98af5e8  : [c2p  -W-  fin:--] [p2s  -W-  fin:--]
+  -----------------
+
+For extra points try scp'ing a large file from a remote host 
+to 55555 to see how the bridge responds to stream congestion.
+  
+
 --------------------------------------------------------------
               Work in progress, a weekend project.
 --------------------------------------------------------------
