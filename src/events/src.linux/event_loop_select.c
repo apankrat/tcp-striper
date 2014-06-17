@@ -1,28 +1,20 @@
 /*
- *	This file is a part of the tcp-striper project.
- *	Copyright (c) 2004-2011 Alex Pankratov.
+ *	The code is distributed under terms of the BSD license.
+ *	Copyright (c) 2014 Alex Pankratov. All rights reserved.
  *
- *	http://github.com/apankrat/tcp-striper
+ *	http://swapped.cc/bsd-license
  */
+#include "libp/event_loop.h"
 
-/*
- *	The program is distributed under terms of BSD license.
- *	You can obtain the copy of the license by visiting:
- *
- *	http://www.opensource.org/licenses/bsd-license.php
- */
-
-#include "event_loop.h"
+#include "libp/assert.h"
+#include "libp/macros.h"
+#include "libp/alloc.h"
+#include "libp/map.h"
 
 #include <sys/select.h>
 
-#include "assert.h"
-#include "macros.h"
-#include "alloc.h"
-#include "map.h"
-
 /*
- *	rudimentary select()-based event loop
+ *	Rudimentary select()-based event loop
  */
 struct select_sk
 {
@@ -83,7 +75,7 @@ select_sk * _alloc_select_sk(int sk, uint events,
 {
 	select_sk * foo;
 
-	foo = heap_alloc(sizeof *foo);
+	foo = heap_malloc(sizeof *foo);
 	if (! foo)
 		return NULL;
 
@@ -299,7 +291,7 @@ event_loop * new_event_loop_select()
 {
 	evl_select * evl;
 
-	evl = heap_alloc(sizeof *evl);
+	evl = heap_malloc(sizeof *evl);
 	if (! evl)
 		return NULL;
 

@@ -1,21 +1,13 @@
 /*
- *	This file is a part of the tcp-striper project.
- *	Copyright (c) 2004-2011 Alex Pankratov.
+ *	The code is distributed under terms of the BSD license.
+ *	Copyright (c) 2014 Alex Pankratov. All rights reserved.
  *
- *	http://github.com/apankrat/tcp-striper
+ *	http://swapped.cc/bsd-license
  */
+#ifndef _LIBP_EVENT_LOOP_H_
+#define _LIBP_EVENT_LOOP_H_
 
-/*
- *	The program is distributed under terms of BSD license.
- *	You can obtain the copy of the license by visiting:
- *
- *	http://www.opensource.org/licenses/bsd-license.php
- */
-
-#ifndef _EVENT_LOOP_H_tcpstriper_
-#define _EVENT_LOOP_H_tcpstriper_
-
-#include "types.h"
+#include "libp/types.h"
 
 /*
  *	For listening sockets:
@@ -51,11 +43,20 @@ enum socket_event
 };
 
 /*
+ *	Your good old event loop.
  *
+ *	Pass it sockets to be monitored for r/w/x events with add(), 
+ *	then pull on monitor() to do the actual monitor for up to
+ *	timeout_ms milliseconds and it will get you a callback if
+ *	an event happens on a socket.
+ *
+ *	Use mod() to change the monitored event mask.
+ *
+ *	Use del() to remove the socket from the loop.
  */
 typedef void (* event_loop_cb)(void * context, uint events);
 
-typedef struct event_loop  event_loop;
+typedef struct event_loop event_loop;
 
 struct event_loop
 {
@@ -72,7 +73,8 @@ struct event_loop
 };
 
 /*
- *
+ *	Rudimentary select()-based implementation for now,
+ *	epoll()-based one is coming up
  */
 event_loop * new_event_loop_select();
 

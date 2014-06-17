@@ -2,7 +2,8 @@ CFLAGS += -Wall -DNDEBUG -g \
 	-I. \
 	-Icore/inc \
 	-Idata/inc \
-	-Ievent_loop/inc \
+	-Ievents/inc \
+	-Ipipes/inc \
 	-Isystem/inc.linux \
 	-Isystem/inc
 
@@ -10,8 +11,18 @@ SRC = \
 	core/src/alloc.c \
 	core/src/assert.c \
 	data/src/map.c \
-	event_loop/src.linux/event_loop_select.c \
+	events/src.linux/event_loop_select.c \
+	pipes/src/io_buffer.c \
+	pipes/src/io_pipe_tcp.c \
 	system/src.linux/termio.c \
+	system/src/socket_utils.c \
+	main.c 
+#	connection.c \
+#	connection_tcp.c 
+#	core/src/alloc.c \
+	core/src/assert.c \
+	data/src/map.c \
+	event_loop/src.linux/event_loop_select.c \
 	data_buffer.c \
 	proxy_types.c \
 	socket_utils.c \
@@ -36,4 +47,4 @@ tcp-striper: $(OBJS)
 	@$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 clean:
-	rm -rf tcp-striper _obj/*
+	rm -rf tcp-striper _obj

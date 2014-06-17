@@ -1,19 +1,11 @@
 /*
- *	This file is a part of the tcp-striper project.
- *	Copyright (c) 2004-2011 Alex Pankratov.
+ *	The code is distributed under terms of the BSD license.
+ *	Copyright (c) 2014 Alex Pankratov. All rights reserved.
  *
- *	http://github.com/apankrat/tcp-striper
+ *	http://swapped.cc/bsd-license
  */
-
-/*
- *	The program is distributed under terms of BSD license.
- *	You can obtain the copy of the license by visiting:
- *
- *	http://www.opensource.org/licenses/bsd-license.php
- */
-
-#ifndef _SOCKET_H_linux_tcpstriper_
-#define _SOCKET_H_linux_tcpstriper_
+#ifndef _LIBP_SOCKET_H_linux_
+#define _LIBP_SOCKET_H_linux_
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -168,7 +160,7 @@ int sk_recv(int sk, void * buf, size_t len)
 }
 
 static inline
-int sk_sendto(int sk, void * buf, size_t len,
+int sk_sendto(int sk, const void * buf, size_t len,
               sockaddr * dst, socklen_t dstlen)
 {
 	int r;
@@ -178,7 +170,7 @@ int sk_sendto(int sk, void * buf, size_t len,
 }
 
 static inline
-int sk_send(int sk, void * buf, size_t len)
+int sk_send(int sk, const void * buf, size_t len)
 {
 	return sk_sendto(sk, buf, len, NULL, 0);
 }

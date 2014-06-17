@@ -1,4 +1,10 @@
-#include "socket_utils.h"
+/*
+ *	The code is distributed under terms of the BSD license.
+ *	Copyright (c) 2014 Alex Pankratov. All rights reserved.
+ *
+ *	http://swapped.cc/bsd-license
+ */
+#include "libp/socket_utils.h"
 
 #include <stdio.h>
 

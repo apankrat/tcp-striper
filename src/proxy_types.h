@@ -1,6 +1,6 @@
 /*
  *	This file is a part of the tcp-striper project.
- *	Copyright (c) 2004-2011 Alex Pankratov.
+ *	Copyright (c) 2014 Alex Pankratov.
  *
  *	http://github.com/apankrat/tcp-striper
  */

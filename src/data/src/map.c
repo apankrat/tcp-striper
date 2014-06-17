@@ -1,22 +1,17 @@
 /*
- *	This file is a part of the tcp-striper project.
- *	Copyright (c) 2004-2011 Alex Pankratov.
+ *	The code is distributed under terms of the BSD license.
+ *	Copyright (c) 2014 Alex Pankratov. All rights reserved.
  *
- *	http://github.com/apankrat/tcp-striper
+ *	http://swapped.cc/bsd-license
  */
+#include "libp/map.h"
+
+#include "libp/assert.h"
+#include "libp/macros.h"
 
 /*
- *	The program is distributed under terms of BSD license.
- *	You can obtain the copy of the license by visiting:
- *
- *	http://www.opensource.org/licenses/bsd-license.php
+ *	internal
  */
-
-#include "map.h"
-
-#include "assert.h"
-#include "macros.h"
-
 static
 map_item ** _map_find(map_head * head, map_item * key, map_item ** parent)
 {
@@ -47,7 +42,7 @@ map_item ** _map_find(map_head * head, map_item * key, map_item ** parent)
 }
 
 /*
- *
+ *	API
  */
 void map_init(map_head * head, map_compare comp)
 {

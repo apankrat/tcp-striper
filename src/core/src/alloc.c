@@ -1,27 +1,40 @@
 /*
- *	This file is a part of the tcp-striper project.
- *	Copyright (c) 2004-2011 Alex Pankratov.
+ *	The code is distributed under terms of the BSD license.
+ *	Copyright (c) 2014 Alex Pankratov. All rights reserved.
  *
- *	http://github.com/apankrat/tcp-striper
+ *	http://swapped.cc/bsd-license
  */
+#include "libp/alloc.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 /*
- *	The program is distributed under terms of BSD license.
- *	You can obtain the copy of the license by visiting:
- *
- *	http://www.opensource.org/licenses/bsd-license.php
+ *	The actual allocator
  */
+void * (* heap_allocator)(void * ptr, size_t len) = realloc;
 
-#include "alloc.h"
-#include <stdlib.h>
-
-void * heap_alloc(size_t n)
+/*
+ *
+ */
+void * heap_malloc(size_t n)
 {
-	return malloc(n);
+	return heap_allocator(NULL, n);
+}
+
+void * heap_zalloc(size_t n)
+{
+	void * p = heap_allocator(NULL, n);
+	return p ? memset(p, 0, n) : NULL;
+}
+
+void * heap_realloc(void * ptr, size_t size)
+{
+	return heap_allocator(ptr, size);
 }
 
 void heap_free(void * p)
 {
-	free(p);
+	heap_realloc(p, 0);
 }
 
