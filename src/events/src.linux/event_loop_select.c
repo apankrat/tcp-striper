@@ -53,8 +53,8 @@ typedef struct evl_select  evl_select;
 static
 int _select_sk_comp(const map_item * a, const map_item * b)
 {
-	return structof(a, select_sk, by_sk)->sk - 
-	       structof(b, select_sk, by_sk)->sk;
+	return container_of(a, select_sk, by_sk)->sk - 
+	       container_of(b, select_sk, by_sk)->sk;
 }
 
 static
@@ -66,7 +66,7 @@ select_sk * _find_select_sk(evl_select * evl, int sk)
 	foo.sk = sk;
 	mi = map_find(&evl->sockets, &foo.by_sk);
 
-	return mi ? structof(mi, select_sk, by_sk) : NULL;
+	return mi ? container_of(mi, select_sk, by_sk) : NULL;
 }
 
 static
@@ -94,7 +94,7 @@ static
 void _evl_select_add_socket(event_loop * self, int sk, uint events,
 	                   event_loop_cb cb, void * cb_context)
 {
-	evl_select * evl = structof(self, evl_select, api);
+	evl_select * evl = container_of(self, evl_select, api);
 	select_sk  * ssk;
 	map_item   * mi;
 
@@ -122,7 +122,7 @@ void _evl_select_add_socket(event_loop * self, int sk, uint events,
 static
 void _evl_select_mod_socket(event_loop * self, int sk, uint events)
 {
-	evl_select * evl = structof(self, evl_select, api);
+	evl_select * evl = container_of(self, evl_select, api);
 	select_sk  * ssk;
 
 	ssk = _find_select_sk(evl, sk);
@@ -158,7 +158,7 @@ void _evl_select_mod_socket(event_loop * self, int sk, uint events)
 static
 void _evl_select_del_socket(event_loop * self, int sk)
 {
-	evl_select * evl = structof(self, evl_select, api);
+	evl_select * evl = container_of(self, evl_select, api);
 	select_sk  * ssk;
 
 	ssk = _find_select_sk(evl, sk);
@@ -188,7 +188,7 @@ void _evl_select_del_socket(event_loop * self, int sk)
 		{
 			select_sk * foo;
 			
-			foo = structof(mi, select_sk, by_sk);
+			foo = container_of(mi, select_sk, by_sk);
 			if (foo->sk < max_sk)
 				continue;
 
@@ -206,7 +206,7 @@ void _evl_select_del_socket(event_loop * self, int sk)
 static
 int _evl_select_monitor(event_loop * self, size_t timeout_ms)
 {
-	evl_select * evl = structof(self, evl_select, api);
+	evl_select * evl = container_of(self, evl_select, api);
 	fd_set fds_r, fds_w, fds_x;
 	struct timeval tv;
 	int r;
@@ -240,7 +240,7 @@ int _evl_select_monitor(event_loop * self, size_t timeout_ms)
 	mi = NULL;
 	while ( (mi = map_walk(&evl->sockets, mi)) )
 	{
-		select_sk * ssk = structof(mi, select_sk, by_sk);
+		select_sk * ssk = container_of(mi, select_sk, by_sk);
 
 		ssk->have = 0;
 
@@ -265,7 +265,7 @@ again:
 	mi = NULL;
 	while ( ( mi = map_walk(&evl->sockets, mi)) )
 	{
-		select_sk * ssk = structof(mi, select_sk, by_sk);
+		select_sk * ssk = container_of(mi, select_sk, by_sk);
 		uint have = ssk->have;
 		
 		if (! have)

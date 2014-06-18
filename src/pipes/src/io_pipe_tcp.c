@@ -82,7 +82,7 @@ void tcp_pipe_on_activity(void * ctx, uint events)
 static
 void tcp_pipe_init(io_pipe * self, event_loop * evl)
 {
-	tcp_pipe * c = structof(self, tcp_pipe, base);
+	tcp_pipe * c = container_of(self, tcp_pipe, base);
 	uint mask;
 
 	assert(! c->evl);
@@ -96,7 +96,7 @@ void tcp_pipe_init(io_pipe * self, event_loop * evl)
 static
 int tcp_pipe_recv(io_pipe * self, void * buf, size_t len, int * fatal)
 {
-	tcp_pipe * c = structof(self, tcp_pipe, base);
+	tcp_pipe * c = container_of(self, tcp_pipe, base);
 	int r;
 
 	assert(c->evl); /* must be initialized */
@@ -125,7 +125,7 @@ int tcp_pipe_recv(io_pipe * self, void * buf, size_t len, int * fatal)
 static
 int tcp_pipe_send(io_pipe * self, const void * buf, size_t len, int * fatal)
 {
-	tcp_pipe * c = structof(self, tcp_pipe, base);
+	tcp_pipe * c = container_of(self, tcp_pipe, base);
 	int r;
 
 	assert(c->evl); /* must be initialized */
@@ -146,7 +146,7 @@ int tcp_pipe_send(io_pipe * self, const void * buf, size_t len, int * fatal)
 static
 int tcp_pipe_shutdown(io_pipe * self)
 {
-	tcp_pipe * c = structof(self, tcp_pipe, base);
+	tcp_pipe * c = container_of(self, tcp_pipe, base);
 
 	assert(! self->fin_sent);
 
@@ -163,7 +163,7 @@ int tcp_pipe_shutdown(io_pipe * self)
 static
 void tcp_pipe_discard(io_pipe * self)
 {
-	tcp_pipe * c = structof(self, tcp_pipe, base);
+	tcp_pipe * c = container_of(self, tcp_pipe, base);
 
 	if (c->evl)
 		c->evl->del_socket(c->evl, c->sk);

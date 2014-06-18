@@ -12,7 +12,7 @@
 /*
  *	Restore pointer to the structure by a pointer to its field
  */
-#define structof(p,t,f) ((t*)(- offsetof(t,f) + (char*)(p)))
+#define container_of(p,t,f) ((t*)(- offsetof(t,f) + (char*)(p)))
 
 /*
  *

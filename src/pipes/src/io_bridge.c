@@ -59,7 +59,7 @@ void br_stream_on_activity(void * context, uint events)
 static
 void br_bridge_init(io_bridge * self, event_loop * evl)
 {
-	br_bridge * br = structof(self, br_bridge, base);
+	br_bridge * br = container_of(self, br_bridge, base);
 
 	assert(! br->evl);
 	br->evl = evl;
@@ -88,7 +88,7 @@ void br_bridge_dispose(br_bridge * br)
 static
 void br_bridge_discard(io_bridge * self)
 {
-	br_bridge * br = structof(self, br_bridge, base);
+	br_bridge * br = container_of(self, br_bridge, base);
 
 	assert(! br->dead);
 	br->dead = 1;

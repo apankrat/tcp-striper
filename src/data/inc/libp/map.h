@@ -17,7 +17,7 @@
  *	allocation, it merely weaves items and the head together.
  *
  *	The app is expected to restore a pointer to its own item
- *	type from a pointer to map_item via offsetof/structof()
+ *	type from a pointer to map_item via container_of()
  *	macros, e.g.
  *
  *		struct foo
@@ -29,7 +29,7 @@
  *
  *		void process_foo(map_item * p)
  *		{
- *			foo * f = structof(p, foo, index);
+ *			foo * f = container_of(p, foo, index);
  *			assert(p == &f->index);
  *			...
  *		}
