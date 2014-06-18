@@ -34,15 +34,17 @@ typedef struct select_sk  select_sk;
  */
 struct evl_select
 {
-	event_loop api;
+	event_loop  api;
 
-	int    nfds;    /* highest fd in sets + 1 */
-	fd_set fds_r;
-	fd_set fds_w;
-	fd_set fds_x;
+	int         nfds;    /* highest fd in sets + 1 */
+	fd_set      fds_r;
+	fd_set      fds_w;
+	fd_set      fds_x;
 
-	map_head  sockets;
-	int       map_touched;
+	map_head    sockets;
+	int         map_touched : 1;
+	int         in_callback : 1;
+	int         dead : 1;
 };
 
 typedef struct evl_select  evl_select;
@@ -71,7 +73,7 @@ select_sk * find_select_sk(evl_select * evl, int sk)
 
 static
 select_sk * alloc_select_sk(int sk, uint events,
-                             event_loop_cb cb, void * cb_context)
+                            event_loop_cb cb, void * cb_context)
 {
 	select_sk * foo;
 
@@ -87,12 +89,28 @@ select_sk * alloc_select_sk(int sk, uint events,
 	return foo;
 }
 
+static
+void evl_select_dispose(evl_select * evl)
+{
+	select_sk * ssk;
+	map_item * mi;
+
+	while ( (mi = map_walk(&evl->sockets, NULL)) )
+	{
+		ssk = struct_of(mi, select_sk, by_sk);
+		map_del(&evl->sockets, mi);
+		heap_free(ssk);
+	}
+
+	heap_free(evl);
+}
+
 /*
  *
  */
 static
 void evl_select_add_socket(event_loop * self, int sk, uint events,
-                            event_loop_cb cb, void * cb_context)
+                           event_loop_cb cb, void * cb_context)
 {
 	evl_select * evl = struct_of(self, evl_select, api);
 	select_sk  * ssk;
@@ -213,6 +231,17 @@ int evl_select_monitor(event_loop * self, size_t timeout_ms)
 	map_item  * mi;
 	int active;
 
+	/*
+	 *	Don't recurse, i.e. don't call evl->select() from
+	 *	a callback dispatched from another call to evl->select()
+	 */
+	assert(! evl->in_callback);
+	if (evl->in_callback)
+		return -1;
+
+	/*
+	 *	OK, select
+	 */
 	tv.tv_sec = timeout_ms / 1000;
 	tv.tv_usec = 1000 * (timeout_ms % 1000);
 
@@ -235,8 +264,10 @@ int evl_select_monitor(event_loop * self, size_t timeout_ms)
 	if (r == 0)
 		return 0;
 
+	/*
+	 *	Got some activity
+	 */
 	active = 0;
-
 	mi = NULL;
 	while ( (mi = map_walk(&evl->sockets, mi)) )
 	{
@@ -259,6 +290,9 @@ int evl_select_monitor(event_loop * self, size_t timeout_ms)
 
 	assert(active); /* otherwise r should've been 0 */
 
+	/*
+	 *	Dispatch callbacks
+	 */
 again:
 	evl->map_touched = 0;
 
@@ -272,7 +306,17 @@ again:
 			continue;
 
 		ssk->have = 0;
+
+		evl->in_callback = 1;
 		ssk->cb(ssk->cb_context, have);
+		evl->in_callback = 0;
+
+		if (evl->dead)
+		{
+			/* discard() was called from the callback */
+			evl_select_dispose(evl);
+			return -1;
+		}
 
 		if (! --active)
 			break;
@@ -282,6 +326,22 @@ again:
 	}
 
 	return 0;
+}
+
+static
+void evl_select_discard(event_loop * self)
+{
+	evl_select * evl = struct_of(self, evl_select, api);
+
+	assert(! evl->dead); /* don't discard more than once */
+	evl->dead = 1;
+
+	if (evl->in_callback)
+		/* Got here through ssk->cb() from select(), so
+		   select() will do the actual 'evl' disposal */
+		return;
+
+	evl_select_dispose(evl);
 }
 
 /*
@@ -299,7 +359,7 @@ event_loop * new_event_loop_select()
 	evl->api.mod_socket = evl_select_mod_socket;
 	evl->api.del_socket = evl_select_del_socket;
 	evl->api.monitor    = evl_select_monitor;
-	evl->api.discard    = NULL; // evl_select_discard
+	evl->api.discard    = evl_select_discard;
 
 	evl->nfds = 0;
 	FD_ZERO(&evl->fds_r);

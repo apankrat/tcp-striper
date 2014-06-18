@@ -32,12 +32,31 @@ struct br_bridge
 	io_bridge    base;
 
 	event_loop * evl;
-	int          busy;     /* in callback(s) */
-	int          dead : 1; /* discard was called */
+	int          in_callback : 1;
+	int          dead : 1;
 
-	br_stream    l;        /* left  */
-	br_stream    r;        /* right */
+	br_stream    l; /* left  */
+	br_stream    r; /* right */
 };
+
+/*
+ *	internal
+ */
+static
+void br_stream_cleanup(br_stream * st)
+{
+	st->pipe->discard(st->pipe);
+
+	if (st->pending)
+		heap_free(st->pending);
+}
+
+static
+void br_bridge_dispose(br_bridge * br)
+{
+	br_stream_cleanup(&br->l);
+	br_stream_cleanup(&br->r);
+}
 
 /*
  *	a callback from pipes
@@ -47,6 +66,15 @@ void br_stream_on_activity(void * context, uint events)
 {
 	br_stream * st = (br_stream *)context;
 	br_bridge * br = st->bridge;
+
+	/*
+	 *	Catch recursion
+	 */
+	assert(! br->in_callback);
+	if (br->in_callback)
+		return;
+
+//	xx
 }
 
 /*
@@ -68,20 +96,6 @@ void br_bridge_init(io_bridge * self, event_loop * evl)
  *	api / cleanup
  */
 static
-void br_stream_cleanup(br_stream * st)
-{
-	st->pipe->discard(st->pipe);
-	heap_free(st->pending);
-}
-
-static
-void br_bridge_dispose(br_bridge * br)
-{
-	br_stream_cleanup(&br->l);
-	br_stream_cleanup(&br->r);
-}
-
-static
 void br_bridge_discard(io_bridge * self)
 {
 	br_bridge * br = struct_of(self, br_bridge, base);
@@ -89,11 +103,10 @@ void br_bridge_discard(io_bridge * self)
 	assert(! br->dead);
 	br->dead = 1;
 
-	if (! br->busy)
-		br_bridge_dispose(br);
+	if (br->in_callback)
+		return;
 
-	/* otherwise will dispose once we
-	   are back from all callbacks */
+	br_bridge_dispose(br);
 }
 
 /*
