@@ -7,6 +7,9 @@
 #include "libp/io_bridge.h"
 
 #include "libp/alloc.h"
+#include "libp/assert.h"
+#include "libp/macros.h"
+
 #include "io_buffer.h"
 
 /*
@@ -37,15 +40,8 @@ struct br_bridge
 };
 
 /*
- *	callbacks from pipes
+ *	a callback from pipes
  */
-static
-void br_stream_on_connected(void * context, int ok)
-{
-	br_stream * st = (br_stream *)context;
-	br_bridge * br = st->bridge;
-}
-
 static
 void br_stream_on_activity(void * context, uint events)
 {
@@ -59,7 +55,7 @@ void br_stream_on_activity(void * context, uint events)
 static
 void br_bridge_init(io_bridge * self, event_loop * evl)
 {
-	br_bridge * br = container_of(self, br_bridge, base);
+	br_bridge * br = struct_of(self, br_bridge, base);
 
 	assert(! br->evl);
 	br->evl = evl;
@@ -68,7 +64,7 @@ void br_bridge_init(io_bridge * self, event_loop * evl)
 	br->r.pipe->init(br->r.pipe, evl);
 }
 
-/* 
+/*
  *	api / cleanup
  */
 static
@@ -88,14 +84,14 @@ void br_bridge_dispose(br_bridge * br)
 static
 void br_bridge_discard(io_bridge * self)
 {
-	br_bridge * br = container_of(self, br_bridge, base);
+	br_bridge * br = struct_of(self, br_bridge, base);
 
 	assert(! br->dead);
 	br->dead = 1;
 
 	if (! br->busy)
 		br_bridge_dispose(br);
-	
+
 	/* otherwise will dispose once we
 	   are back from all callbacks */
 }
@@ -103,24 +99,29 @@ void br_bridge_discard(io_bridge * self)
 /*
  *
  */
+static
+void br_setup_stream(br_stream * st, io_pipe * io, br_bridge * br)
+{
+	st->bridge = br;
+	st->peer = (st == &br->l) ? &br->r : &br->l;
+	st->pipe = io;
+	st->pipe->on_activity = br_stream_on_activity;
+	st->pipe->on_context = st;
+}
+
 io_bridge * new_io_bridge(io_pipe * l, io_pipe * r)
 {
 	br_bridge * br;
-	
-	br = (br_bridge*)heap_zalloc(sizeof *br);
-	
-	br->l.bridge = br;
-	br->l.peer = &br->r;
-	br->l.pipe = l;
 
-	br->r.bridge = br;
-	br->r.peer = &br->l;
-	br->r.pipe = r;
-	
+	br = (br_bridge*)heap_zalloc(sizeof *br);
+
 	br->base.l = l;
 	br->base.r = r;
 	br->base.init = br_bridge_init;
-	br->base.discard = br_bridge_discard;_
+	br->base.discard = br_bridge_discard;
+
+	br_setup_stream(&br->l, l, br);
+	br_setup_stream(&br->r, r, br);
 
 	return &br->base;
 }

@@ -72,7 +72,7 @@ bridge * alloc_bridge(proxy_state * pxy)
 	bridge * b = heap_alloc(sizeof *b);
 
 	b->pxy = pxy;
-	
+
 	init_connection(&b->c2p, b);
 	init_connection(&b->p2s, b);
 
@@ -116,10 +116,10 @@ void init_proxy_config(proxy_config * conf)
 void init_proxy_state(proxy_state * state, proxy_config * conf)
 {
 	size_t capacity;
-	
-	capacity = (conf->c2p_buffer < conf->p2s_buffer) ? 
+
+	capacity = (conf->c2p_buffer < conf->p2s_buffer) ?
 		conf->p2s_buffer : conf->c2p_buffer;
-	
+
 	state->conf = conf;
 	state->evl = new_event_loop_select();
 	state->buf = alloc_data_buffer(capacity);

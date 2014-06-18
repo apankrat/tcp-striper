@@ -49,7 +49,7 @@ struct connection
 	int           readable;
 	int           fin_rcvd;     /* peer sent FIN */
 	int           fin_sent;     /* we sent FIN */
-	
+
 	data_buffer * pending;
 
 	uint64_t      rx, tx;

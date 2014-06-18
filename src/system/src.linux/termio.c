@@ -11,7 +11,7 @@
  *
  */
 static
-int _term_mod_lflag(int fd, int mask, int bits)
+int term_mod_lflag(int fd, int mask, int bits)
 {
 	struct termios tio;
 
@@ -29,11 +29,11 @@ int _term_mod_lflag(int fd, int mask, int bits)
  */
 int term_set_buffering(int fd, int enable)
 {
-	return _term_mod_lflag(fd, ICANON, enable ? ICANON : 0);
+	return term_mod_lflag(fd, ICANON, enable ? ICANON : 0);
 }
 
 int term_set_echo(int fd, int enable)
 {
-	return _term_mod_lflag(fd, ECHO, enable ? ECHO : 0);
+	return term_mod_lflag(fd, ECHO, enable ? ECHO : 0);
 }
 

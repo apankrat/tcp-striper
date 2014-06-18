@@ -23,7 +23,7 @@ int enough = 0;
 
 void on_pipe_event(void * context, uint events)
 {
-	printf("pipe event = %c%c%c\n", 
+	printf("pipe event = %c%c%c\n",
 		(events & SK_EV_readable) ? 'R' : '-',
 		(events & SK_EV_writable) ? 'W' : '-',
 		(events & SK_EV_error)    ? 'E' : '-');

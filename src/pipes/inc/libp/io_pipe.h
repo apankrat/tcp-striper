@@ -10,9 +10,9 @@
 #include "libp/event_loop.h"
 
 /*
- *	io_pipe is an abstraction of TCP connection that follows 
- *	its send/recv/shutdown semantics. It is used to extend 
- *	send/recv behavior and transparently implement things 
+ *	io_pipe is an abstraction of TCP connection that follows
+ *	its send/recv/shutdown semantics. It is used to extend
+ *	send/recv behavior and transparently implement things
  *	like atomic send, datagram framing, stream encryption,
  *	compression and so on.
  *
@@ -50,10 +50,10 @@
  *	                    can no longer be used for I/O,
  *	                    or if pending connect() failed
  *
- *	These events are level-triggered, meaning that being 
- *	"readable" is a pipe *state* rather than a one-off 
- *	event. Monitoring for readability of an already 
- *	readable pipe will result in on_activity() callback 
+ *	These events are level-triggered, meaning that being
+ *	"readable" is a pipe *state* rather than a one-off
+ *	event. Monitoring for readability of an already
+ *	readable pipe will result in on_activity() callback
  *	on every event_loop cycle.
  *
  *	--
@@ -69,7 +69,7 @@
  *
  *	It is guaranteed that callbacks are NEVER invoked
  *	from a pipe's API call. In other words, the io_pipe
- *	instance is guaranteed to still exist after a call 
+ *	instance is guaranteed to still exist after a call
  *	to send/recv/shutdown returns. These calls do not
  *	recurse back into the app code via callbacks.
  *
@@ -78,13 +78,13 @@
  *	The status flags are managed by the pipe instance
  *	and are meant for read-only consumption by the app.
  *
- *	When a send() call encounters a failure or a partial 
- *	write due to congestion, the pipe will clear 'writable' 
- *	and start monitoring connection for becoming writable 
- *	again. When it happens, the pipe will set 'writable' 
+ *	When a send() call encounters a failure or a partial
+ *	write due to congestion, the pipe will clear 'writable'
+ *	and start monitoring connection for becoming writable
+ *	again. When it happens, the pipe will set 'writable'
  *	flag and issue on_activity(SK_EV_writable) callback.
  *
- *	Similar logic applies to recv() calls that cannot 
+ *	Similar logic applies to recv() calls that cannot
  *	fetch any data because the data is not there. The
  *	pipe will clear 'readable' flag and start monitoring
  *	for incoming data. If it receives data, it sets the
@@ -106,14 +106,14 @@ struct io_pipe
 	int  readable : 1;
 	int  fin_rcvd : 1; /* got FIN from the peer */
 	int  fin_sent : 1; /* sent FIN to the peer  */
-	
+
 	/* api */
 	void (* init)(io_pipe * self, event_loop * evl);
 
 	int  (* recv)(io_pipe * self, void * buf, size_t len, int * fatal);
 	int  (* send)(io_pipe * self, const void * buf, size_t len, int * fatal);
 	int  (* shutdown)(io_pipe * self);
-	
+
 	void (* discard)(io_pipe * self);
 
 	/* callbacks */

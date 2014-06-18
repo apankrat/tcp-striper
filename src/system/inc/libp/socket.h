@@ -31,7 +31,7 @@
  * 			<none>
  *
  * 		-- types --
- * 		
+ *
  *		int (not socket_t) for a socket descriptor
  *
  *		socklen_t
@@ -49,32 +49,32 @@
  *
  *		int sk_bind(int sk, const sockaddr * addr, socklen_t alen);
  *
- *		int sk_connect(int sk, const sockaddr * a, socklen_t alen); 
+ *		int sk_connect(int sk, const sockaddr * a, socklen_t alen);
  *
  *		int sk_listen(int sk, int backlog);
  *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
  *
  *		int sk_getsockname(int sk, sockaddr * a, socklen_t * alen);
  *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
- *		
+ *
  *		int sk_recv(int sk, void * p, size_t n);
- *		int sk_recvfrom(int sk, void * p, size_t n, 
+ *		int sk_recvfrom(int sk, void * p, size_t n,
  *		                sockaddr * src, socklen_t * alen);
  *
  *		int sk_send(int sk, const void * p, size_t n);
- *		int sk_sendto(int sk, const void * p, size_t n, 
+ *		int sk_sendto(int sk, const void * p, size_t n,
  *		              sockaddr * dst, socklen_t alen);
  *
- *		int sk_getsockopt(int sk, int level, int opt, 
+ *		int sk_getsockopt(int sk, int level, int opt,
  *		                  void * val, socklen_t vlen);
- *		int sk_setsockopt(int sk, int level, int opt, 
+ *		int sk_setsockopt(int sk, int level, int opt,
  *		                  const void * val, socklen_t vlen);
  *
  * 	Non-Posix extensions:
  *
  *		int sk_unblock(int sk);
  *
- *		int sk_errno();       // aka "fast", errno 
+ *		int sk_errno();       // aka "fast", errno
  *		int sk_error(int sk); // aka "slow", getsockopt(so_error)
  *
  * 		int sk_conn_fatal(int err); // boolean return
@@ -94,13 +94,13 @@
  *
  *	Notes:
  *
- *		On windows - if the connection is aborted by peer (e.g. 
- *		via linger/close), and there's unread data in a socket 
- *		buffer, the socket will show as 'readable' when polled 
+ *		On windows - if the connection is aborted by peer (e.g.
+ *		via linger/close), and there's unread data in a socket
+ *		buffer, the socket will show as 'readable' when polled
  *		for status, but recv() will fail with ECONNRESET.
  *
- *		So for the sake of portability, it should be assumed that 
- *		if a socket enters a 'reset' (or 'error') state, all its 
+ *		So for the sake of portability, it should be assumed that
+ *		if a socket enters a 'reset' (or 'error') state, all its
  *		buffers - both inbound and outbound - are cleared by the OS.
  */
 

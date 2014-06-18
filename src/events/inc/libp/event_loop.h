@@ -45,7 +45,7 @@ enum socket_event
 /*
  *	Your good old event loop.
  *
- *	Pass it sockets to be monitored for r/w/x events with add(), 
+ *	Pass it sockets to be monitored for r/w/x events with add(),
  *	then pull on monitor() to do the actual monitor for up to
  *	timeout_ms milliseconds and it will get you a callback if
  *	an event happens on a socket.

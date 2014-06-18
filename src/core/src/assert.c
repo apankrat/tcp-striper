@@ -10,12 +10,12 @@
 #include <stdlib.h>
 
 static
-void log_and_die(const char * exp, const char * file, int line)
+void log_and_abort(const char * exp, const char * file, int line)
 {
 	fprintf(stderr, "assert(%s) failed in %s, line %d\n",
 		exp, file, line);
 	abort();
 }
 
-void (*on_assert)(const char *, const char *, int) = log_and_die;
+void (*on_assert)(const char *, const char *, int) = log_and_abort;
 

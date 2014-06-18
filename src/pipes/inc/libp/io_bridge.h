@@ -8,7 +8,6 @@
 #define _LIBP_IO_BRIDGE_H_
 
 #include "libp/io_pipe.h"
-#include "libp/io_buffer.h"
 
 /*
  *	io_bridge connects two io_pipe instances so that whatever

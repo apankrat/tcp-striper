@@ -12,6 +12,7 @@ SRC = \
 	core/src/assert.c \
 	data/src/map.c \
 	events/src.linux/event_loop_select.c \
+	pipes/src/io_bridge.c \
 	pipes/src/io_buffer.c \
 	pipes/src/io_pipe_tcp.c \
 	system/src.linux/termio.c \

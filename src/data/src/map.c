@@ -27,13 +27,13 @@ map_item ** _map_find(map_head * head, map_item * key, map_item ** parent)
 		r = head->comp(key, *p);
 		if (! r)
 			return p; /* dupe */
-	
+
 		q = *p;
 		p = (r < 0) ? &(*p)->l : &(*p)->r;
 	}
 
 	// p is either &head->root, q is NULL or
-	// p = &q->l or 
+	// p = &q->l or
 	// p = &q->r
 	if (parent)
 		*parent = q;
@@ -53,7 +53,7 @@ void map_init(map_head * head, map_compare comp)
 map_item * map_add(map_head * head, map_item * item)
 {
 	map_item ** pp, * p;
-	
+
 	pp = _map_find(head, item, &p);
 	if (*pp)
 		return *pp; /* dupe */

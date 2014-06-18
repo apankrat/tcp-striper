@@ -13,29 +13,29 @@
  *	map_head is the handle of the map and the rest of the API
  *	binds map_items to map_head to form ... duh ... a map.
  *
- *	The principal point is that the API doesn't perform any 
+ *	The principal point is that the API doesn't perform any
  *	allocation, it merely weaves items and the head together.
  *
  *	The app is expected to restore a pointer to its own item
- *	type from a pointer to map_item via container_of()
+ *	type from a pointer to map_item via struct_of()
  *	macros, e.g.
  *
  *		struct foo
  *		{
  *			...
  *			map_item  index;
- *			... 
+ *			...
  *		};
  *
  *		void process_foo(map_item * p)
  *		{
- *			foo * f = container_of(p, foo, index);
+ *			foo * f = struct_of(p, foo, index);
  *			assert(p == &f->index);
  *			...
  *		}
  *
- *	Unless explicitly stated, the app should treat contents 
- *	of map_item and map_head as opaque and never operate 
+ *	Unless explicitly stated, the app should treat contents
+ *	of map_item and map_head as opaque and never operate
  *	with them directly.
  */
 

@@ -44,7 +44,7 @@
  * 			<none>
  *
  * 		-- types --
- * 		
+ *
  *		int (not socket_t) for a socket descriptor
  *
  *		socklen_t
@@ -85,7 +85,7 @@ int sk_close(int sk)
  /*
   *		int sk_bind(int sk, const sockaddr * addr, socklen_t alen);
   *
-  *		int sk_connect(int sk, const sockaddr * a, socklen_t alen); 
+  *		int sk_connect(int sk, const sockaddr * a, socklen_t alen);
   *
   *		int sk_listen(int sk, int backlog);
   *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
@@ -134,12 +134,12 @@ int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
 /*
  *		int sk_recv(int sk, void * p, size_t n);
  *
- *		int sk_recvfrom(int sk, void * p, size_t n, 
+ *		int sk_recvfrom(int sk, void * p, size_t n,
  *		                sockaddr * src, socklen_t * srclen);
  *
  *		int sk_send(int sk, const void * p, size_t n);
  *
- *		int sk_sendto(int sk, const void * p, size_t n, 
+ *		int sk_sendto(int sk, const void * p, size_t n,
  *		              sockaddr * dst, socklen_t dstlen);
  */
 
@@ -176,9 +176,9 @@ int sk_send(int sk, const void * buf, size_t len)
 }
 
 /*
- *		int sk_getsockopt(int sk, int level, int opt, 
+ *		int sk_getsockopt(int sk, int level, int opt,
  *		                  void * val, socklen_t vlen);
- *		int sk_setsockopt(int sk, int level, int opt, 
+ *		int sk_setsockopt(int sk, int level, int opt,
  *		                  const void * val, socklen_t vlen);
  */
 
@@ -201,7 +201,7 @@ int sk_setsockopt(int sk, int level, int opt,
  *
  *		int sk_unblock(int sk);
  *
- *		int sk_errno();       // aka "fast", errno 
+ *		int sk_errno();       // aka "fast", errno
  *		int sk_error(int sk); // aka "slow", getsockopt(so_error)
  */
 
@@ -209,7 +209,7 @@ static inline
 int sk_unblock(int sk)
 {
 	int r = fcntl(sk, F_GETFL);
-	return (r < 0) ? r : fcntl(sk, F_SETFL, r | O_NONBLOCK);	
+	return (r < 0) ? r : fcntl(sk, F_SETFL, r | O_NONBLOCK);
 }
 
 static inline

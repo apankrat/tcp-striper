@@ -51,27 +51,27 @@ typedef struct evl_select  evl_select;
  *
  */
 static
-int _select_sk_comp(const map_item * a, const map_item * b)
+int select_sk_comp(const map_item * a, const map_item * b)
 {
-	return container_of(a, select_sk, by_sk)->sk - 
-	       container_of(b, select_sk, by_sk)->sk;
+	return struct_of(a, select_sk, by_sk)->sk -
+	       struct_of(b, select_sk, by_sk)->sk;
 }
 
 static
-select_sk * _find_select_sk(evl_select * evl, int sk)
+select_sk * find_select_sk(evl_select * evl, int sk)
 {
 	map_item * mi;
 	select_sk  foo;
-	
+
 	foo.sk = sk;
 	mi = map_find(&evl->sockets, &foo.by_sk);
 
-	return mi ? container_of(mi, select_sk, by_sk) : NULL;
+	return mi ? struct_of(mi, select_sk, by_sk) : NULL;
 }
 
 static
-select_sk * _alloc_select_sk(int sk, uint events,
-                            event_loop_cb cb, void * cb_context)
+select_sk * alloc_select_sk(int sk, uint events,
+                             event_loop_cb cb, void * cb_context)
 {
 	select_sk * foo;
 
@@ -91,14 +91,14 @@ select_sk * _alloc_select_sk(int sk, uint events,
  *
  */
 static
-void _evl_select_add_socket(event_loop * self, int sk, uint events,
-	                   event_loop_cb cb, void * cb_context)
+void evl_select_add_socket(event_loop * self, int sk, uint events,
+                            event_loop_cb cb, void * cb_context)
 {
-	evl_select * evl = container_of(self, evl_select, api);
+	evl_select * evl = struct_of(self, evl_select, api);
 	select_sk  * ssk;
 	map_item   * mi;
 
-	ssk = _alloc_select_sk(sk, events, cb, cb_context);
+	ssk = alloc_select_sk(sk, events, cb, cb_context);
 	if (! ssk)
 		return; /* out of memory */
 
@@ -120,12 +120,12 @@ void _evl_select_add_socket(event_loop * self, int sk, uint events,
 }
 
 static
-void _evl_select_mod_socket(event_loop * self, int sk, uint events)
+void evl_select_mod_socket(event_loop * self, int sk, uint events)
 {
-	evl_select * evl = container_of(self, evl_select, api);
+	evl_select * evl = struct_of(self, evl_select, api);
 	select_sk  * ssk;
 
-	ssk = _find_select_sk(evl, sk);
+	ssk = find_select_sk(evl, sk);
 	assert(ssk);
 
 	if (  (events & SK_EV_readable) &&
@@ -156,12 +156,12 @@ void _evl_select_mod_socket(event_loop * self, int sk, uint events)
 }
 
 static
-void _evl_select_del_socket(event_loop * self, int sk)
+void evl_select_del_socket(event_loop * self, int sk)
 {
-	evl_select * evl = container_of(self, evl_select, api);
+	evl_select * evl = struct_of(self, evl_select, api);
 	select_sk  * ssk;
 
-	ssk = _find_select_sk(evl, sk);
+	ssk = find_select_sk(evl, sk);
 	assert(ssk);
 
 	if (ssk->events & SK_EV_readable)
@@ -171,7 +171,7 @@ void _evl_select_del_socket(event_loop * self, int sk)
 		FD_CLR(sk, &evl->fds_w);
 
 	FD_CLR(sk, &evl->fds_x);
-	
+
 	map_del(&evl->sockets, &ssk->by_sk);
 
 	heap_free(ssk);
@@ -187,8 +187,8 @@ void _evl_select_del_socket(event_loop * self, int sk)
 		while ( (mi = map_walk(&evl->sockets, mi)) )
 		{
 			select_sk * foo;
-			
-			foo = container_of(mi, select_sk, by_sk);
+
+			foo = struct_of(mi, select_sk, by_sk);
 			if (foo->sk < max_sk)
 				continue;
 
@@ -204,9 +204,9 @@ void _evl_select_del_socket(event_loop * self, int sk)
 }
 
 static
-int _evl_select_monitor(event_loop * self, size_t timeout_ms)
+int evl_select_monitor(event_loop * self, size_t timeout_ms)
 {
-	evl_select * evl = container_of(self, evl_select, api);
+	evl_select * evl = struct_of(self, evl_select, api);
 	fd_set fds_r, fds_w, fds_x;
 	struct timeval tv;
 	int r;
@@ -240,7 +240,7 @@ int _evl_select_monitor(event_loop * self, size_t timeout_ms)
 	mi = NULL;
 	while ( (mi = map_walk(&evl->sockets, mi)) )
 	{
-		select_sk * ssk = container_of(mi, select_sk, by_sk);
+		select_sk * ssk = struct_of(mi, select_sk, by_sk);
 
 		ssk->have = 0;
 
@@ -265,9 +265,9 @@ again:
 	mi = NULL;
 	while ( ( mi = map_walk(&evl->sockets, mi)) )
 	{
-		select_sk * ssk = container_of(mi, select_sk, by_sk);
+		select_sk * ssk = struct_of(mi, select_sk, by_sk);
 		uint have = ssk->have;
-		
+
 		if (! have)
 			continue;
 
@@ -295,18 +295,18 @@ event_loop * new_event_loop_select()
 	if (! evl)
 		return NULL;
 
-	evl->api.add_socket = _evl_select_add_socket;
-	evl->api.mod_socket = _evl_select_mod_socket;
-	evl->api.del_socket = _evl_select_del_socket;
-	evl->api.monitor    = _evl_select_monitor;
-	evl->api.discard    = NULL; // _evl_select_discard
+	evl->api.add_socket = evl_select_add_socket;
+	evl->api.mod_socket = evl_select_mod_socket;
+	evl->api.del_socket = evl_select_del_socket;
+	evl->api.monitor    = evl_select_monitor;
+	evl->api.discard    = NULL; // evl_select_discard
 
 	evl->nfds = 0;
 	FD_ZERO(&evl->fds_r);
 	FD_ZERO(&evl->fds_w);
 	FD_ZERO(&evl->fds_x);
 
-	map_init(&evl->sockets, _select_sk_comp);
+	map_init(&evl->sockets, select_sk_comp);
 	evl->map_touched = 0;
 
 	return &evl->api;

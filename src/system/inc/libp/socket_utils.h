@@ -11,8 +11,8 @@
 
 /*
  *	Some inlines so not to carry around
- *	
- *		... (sockaddr*)addr, sizeof(*addr)); 
+ *
+ *		... (sockaddr*)addr, sizeof(*addr));
  *
  *	when calling bind/connect/accept/etc.
  */
