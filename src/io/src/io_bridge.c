@@ -195,7 +195,7 @@ int br_bridge_relay(br_stream * src, br_stream * dst)
 static
 void br_stream_dump(br_stream * st, uint events)
 {
-	printf("( [%c%c%c] w:%d r:%d f:%c/%c rx:%llu tx:%llu cong:%llu )",
+	printf("( [%c%c%c] w:%d r:%d f:%d/%d rx:%llu tx:%llu cong:%llu )",
 		(events & SK_EV_writable) ? 'W' : '.',
 		(events & SK_EV_readable) ? 'R' : '.',
 		(events & SK_EV_error)    ? 'E' : '.',

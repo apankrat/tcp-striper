@@ -48,7 +48,7 @@ int main(int argc, char ** argv)
 		return 1;
 
 	sockaddr_in_init(&sa);
-	SOCKADDR_IN_PORT(&sa) = htons(22322);
+	SOCKADDR_IN_PORT(&sa) = htons(55555);
 
 	if (sk_setsockopt(sk, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) < 0 ||
 	    sk_bind_ip4(sk, &sa) < 0 ||
@@ -66,7 +66,6 @@ int main(int argc, char ** argv)
 	sk_unblock(c2p);
 
 	//
-	SOCKADDR_IN_ADDR(&sa) = inet_addr("64.34.106.10");
 	SOCKADDR_IN_ADDR(&sa) = inet_addr("127.0.0.1");
 	SOCKADDR_IN_PORT(&sa) = htons(22);
 
