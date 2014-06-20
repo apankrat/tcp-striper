@@ -43,6 +43,8 @@ the ones my cable provider has :)
 
 15/09/14
 
+  -- 1 --
+
   Re-organized the code as follows:
 
     /core - basic type imports, macros, assert() and logging
@@ -50,6 +52,24 @@ the ones my cable provider has :)
     /evl  - event loop (select-based for now)
     /io   - IO pipes & Co. - that's where the magic is
     /sys  - the platform glue (socket interface, termio, etc)
+
+  Each of these has the following structure:
+
+    ./inc/libp/        <portable-headers>
+    ./inc.$OS/libp/    <os-specific-version-of-the-same>
+    ./src/             <portable-sources>
+    ./src.$OS          <os-specific-sources>
+
+  Then, setting INCLUDE path to ./inc.linux, ./inc and will
+  make the compiler pick an OS-specific version of a header 
+  when it encounters 
+  
+  	#include <libp/foo.h>
+
+  if such version is present. Otherwise it falls back to a 
+  generic portable version. See Makefile for details.
+
+  -- 2 --
 
   The bestest part is in the /io. The io_pipe interface is a
   stateful IO abstraction based on TCP, but also allowing 
