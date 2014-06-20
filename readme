@@ -41,6 +41,43 @@ the ones my cable provider has :)
 
                          --  STATUS  --
 
+15/09/14
+
+  Re-organized the code as follows:
+
+    /core - basic type imports, macros, assert() and logging
+    /data - data containers (list and unbalanced map for now)
+    /evl  - event loop (select-based for now)
+    /io   - IO pipes & Co. - that's where the magic is
+    /sys  - the platform glue (socket interface, termio, etc)
+
+  The bestest part is in the /io. The io_pipe interface is a
+  stateful IO abstraction based on TCP, but also allowing 
+  extension of the send/recv behavior. For example, a pipe 
+  of certain type can provide datagram framing, another type
+  - SSL encryption, third - atomic send() behavior, etc. So
+  you could attach these pipes one to another and get a 
+  a reliable encrypted datagram-based connection.
+  
+  Moreover, it becomes possible to write a generalized bridge
+  between any two pipes, which reads from one, writes to 
+  another, minds the congestion and properly handles passing
+  of the FINs between the peers. That's io_bridge.
+
+  This is what tcp-striper does at the moment - it's a simple
+  TCP proxy that accepts a connection on 0.0.0.0:55555, opens
+  another one to 127.0.0.1:22 and then just bridges them 
+  together. In other words, it's a TCP relay.
+
+  The next step would be to add a special pipe type that
+  maintains 2+ connections towards the peer and then stripes
+  all data passed to it via send() between these connections.
+  On the peer's end there'll be a complimentary pipe that
+  would reverse the striping, re-assemble the data into a
+  single stream and pass it to the app's io_bridge for 
+  relaying out.
+
+  Easy-peasy.
 
 28/08/14
 
@@ -62,45 +99,6 @@ the ones my cable provider has :)
   * Basic data containers (map is unbalanced!)
   * Basic app scaffolding (asserts, types, macros)
   * Makefile
-
-
-
-                         --  TO PLAY  --
-
-Build it first -
-
-  cd src
-  make
-
-Launch it -
-
-  ./tcp-striper
-
-This will start a proxy on port 55555 that forwards to 
-127.0.0.1:22, i.e. the SSH port. So doing this -
-
-  ssh -p 55555 127.0.0.1 
-
-should get you the prompt from the actual sshd. Then, hit
-Esc in tcp-striper console and it will dump the summary of 
-its status. Something like this -
-
-  -- proxy state --
-  listening  : 0.0.0.0:55555
-    backlog  : 8
-  connecting : 127.0.0.1:22
-  c2p buffer : 1024
-  p2s buffer : 1024
-  max read   : 1048576 /cycle
-  ---- bridges ----
-  0x98af5e8  : [c2p  -W-  fin:--] [p2s  -W-  fin:--]
-  -----------------
-
-For extra points try scp'ing a large file from a remote host 
-to 55555 to see how the bridge responds to stream congestion.
-  
-Ctrl-C to exit.
-
 
 --------------------------------------------------------------
               Work in progress, a weekend project.
