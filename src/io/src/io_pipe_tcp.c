@@ -63,15 +63,24 @@ void tcp_pipe_on_activity(void * ctx, uint events)
 		    ((events & SK_EV_writable) && (err != 0)) )
 		{
 			c->evl->mod_socket(c->evl, c->sk, 0);
-			events = SK_EV_error;
-		}
-		else
-		{
-			self->writable = 1;
-			tcp_pipe_adjust_event_mask(c);
-			events = SK_EV_writable;
+			self->on_activity(self->on_context, SK_EV_error);
+			return;
 		}
 	}
+
+	if (events & SK_EV_readable)
+	{
+		assert(! self->fin_rcvd);
+		self->readable = 1;
+	}
+
+	if (events & SK_EV_writable)
+	{
+		assert(! self->fin_sent);
+		self->writable = 1;
+	}
+			
+	tcp_pipe_adjust_event_mask(c);
 
 	self->on_activity(self->on_context, events);
 }
@@ -85,7 +94,7 @@ void tcp_pipe_init(io_pipe * self, event_loop * evl)
 	tcp_pipe * c = struct_of(self, tcp_pipe, base);
 	uint mask;
 
-	assert(! c->evl);
+	assert(! c->evl); /* don't initialize twice */
 
 	c->evl = evl;
 
@@ -131,15 +140,15 @@ int tcp_pipe_send(io_pipe * self, const void * buf, size_t len, int * fatal)
 	assert(c->evl); /* must be initialized */
 
 	r = sk_send(c->sk, buf, len);
+	if (r == len)
+		return r;
 
 	if (r < 0)
-	{
 		*fatal = sk_send_fatal( sk_errno(c->sk) );
-		self->writable = 0;
-		tcp_pipe_adjust_event_mask(c);
-		return -1;
-	}
 
+	
+	self->writable = 0;
+	tcp_pipe_adjust_event_mask(c);
 	return r;
 }
 

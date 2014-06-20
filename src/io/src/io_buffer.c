@@ -23,7 +23,9 @@ io_buffer * alloc_io_buffer(size_t capacity, const void * data, size_t size)
 
 	need = sizeof(io_buffer) - 1 + capacity;
 	buf = (io_buffer *)heap_zalloc(need);
+
 	buf->capacity = capacity;
+	buf->head = buf->data;
 
 	if (data)
 	{
@@ -36,5 +38,16 @@ io_buffer * alloc_io_buffer(size_t capacity, const void * data, size_t size)
 	}
 
 	return buf;
+}
+
+void reset_io_buffer(io_buffer * buf)
+{
+	buf->head = buf->data;
+	buf->size = 0;
+}
+
+void free_io_buffer (io_buffer * buf)
+{
+	heap_free(buf);
 }
 

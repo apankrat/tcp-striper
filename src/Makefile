@@ -2,21 +2,21 @@ CFLAGS += -Wall -DNDEBUG -g \
 	-I. \
 	-Icore/inc \
 	-Idata/inc \
-	-Ievents/inc \
-	-Ipipes/inc \
-	-Isystem/inc.linux \
-	-Isystem/inc
+	-Ievl/inc \
+	-Iio/inc \
+	-Isys/inc.linux \
+	-Isys/inc
 
 SRC = \
 	core/src/alloc.c \
 	core/src/assert.c \
 	data/src/map.c \
-	events/src.linux/event_loop_select.c \
-	pipes/src/io_bridge.c \
-	pipes/src/io_buffer.c \
-	pipes/src/io_pipe_tcp.c \
-	system/src.linux/termio.c \
-	system/src/socket_utils.c \
+	evl/src.linux/event_loop_select.c \
+	io/src/io_bridge.c \
+	io/src/io_buffer.c \
+	io/src/io_pipe_tcp.c \
+	sys/src.linux/termio.c \
+	sys/src/socket_utils.c \
 	main.c 
 #	connection.c \
 #	connection_tcp.c 

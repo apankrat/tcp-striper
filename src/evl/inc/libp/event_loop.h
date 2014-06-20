@@ -32,8 +32,10 @@
  *		SK_EV_error    - connection is gone due to
  *		                 timeout, reset, etc.
  *
- *	SK_EV_error is non-maskable, it's always monitored
- *	and reported.
+ *	SK_EV_error is non-maskable, it's always monitored and 
+ *	reported. All events are level-triggered, eg. SK_EV_readable
+ *	will be reported for as long as there's data to be read and
+ *	not just *new* data arrives.
  */
 enum socket_event
 {
@@ -46,9 +48,9 @@ enum socket_event
  *	Your good old event loop.
  *
  *	Pass it sockets to be monitored for r/w/x events with add(),
- *	then pull on monitor() to do the actual monitor for up to
- *	timeout_ms milliseconds and it will get you a callback if
- *	an event happens on a socket.
+ *	then pull on monitor() to do the actual monitoring for up 
+ *	to timeout_ms milliseconds and it will get you a callback
+ *	if an event happens on a socket.
  *
  *	Use mod() to change the monitored event mask.
  *
