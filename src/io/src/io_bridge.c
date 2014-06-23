@@ -76,13 +76,12 @@ int br_stream_flush(br_stream * dst)
 {
 	io_buffer * buf = dst->pending;
 	int bytes;
-	int fatal;
 
 	assert(dst->pending && dst->pipe->writable);
 
-	bytes = dst->pipe->send(dst->pipe, buf->head, buf->size, &fatal);
+	bytes = dst->pipe->send(dst->pipe, buf->head, buf->size);
 	if (bytes < 0)
-		return fatal ? -1 : 0;
+		return dst->pipe->broken ? -1 : 0;
 
 	dst->tx += bytes;
 
@@ -103,7 +102,7 @@ int br_stream_flush(br_stream * dst)
 
 	/* propagate FIN */
 	if (dst->peer->pipe->fin_rcvd)
-		return dst->pipe->shutdown(dst->pipe);
+		return dst->pipe->send_fin(dst->pipe);
 
 	return 0;
 }
@@ -113,27 +112,26 @@ int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 {
 	io_buffer * buf = *space;
 	int bytes;
-	int fatal;
 
 	assert(src->pipe->readable && dst->pipe->writable);
 	assert(! dst->pending);
 	assert(src->recv_size <= buf->capacity);
 
-	bytes = src->pipe->recv(src->pipe, buf->data, src->recv_size, &fatal);
+	bytes = src->pipe->recv(src->pipe, buf->data, src->recv_size);
 	if (bytes < 0)
-		return fatal ? -1 : 0;
+		return src->pipe->broken ? -1 : 0;
 
 	if (bytes == 0)
 	{
 		assert(  src->pipe->fin_rcvd);
 		assert(! dst->pipe->fin_sent);
-		return dst->pipe->shutdown(dst->pipe);
+		return dst->pipe->send_fin(dst->pipe);
 	}
 
 	src->rx += bytes;
 
 	buf->size = bytes;
-	bytes = dst->pipe->send(dst->pipe, buf->data, buf->size, &fatal);
+	bytes = dst->pipe->send(dst->pipe, buf->data, buf->size);
 
 	if (bytes > 0)
 		dst->tx += bytes;
@@ -143,7 +141,7 @@ int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 
 	if (bytes < 0)
 	{
-		if (fatal)
+		if (dst->pipe->broken)
 			return -1;
 		bytes = 0;
 	}
@@ -196,9 +194,9 @@ static
 void br_stream_dump(br_stream * st, uint events)
 {
 	printf("( [%c%c%c] w:%d r:%d f:%d/%d rx:%llu tx:%llu cong:%llu )",
-		(events & SK_EV_writable) ? 'W' : '.',
-		(events & SK_EV_readable) ? 'R' : '.',
-		(events & SK_EV_error)    ? 'E' : '.',
+		(events & IO_EV_writable) ? 'W' : '.',
+		(events & IO_EV_readable) ? 'R' : '.',
+		(events & IO_EV_broken)   ? 'X' : '.',
 		st->pipe->writable ? 1 : 0,
 		st->pipe->readable ? 1 : 0,
 		st->pipe->fin_sent ? 1 : 0,
@@ -221,7 +219,7 @@ void br_stream_on_activity(void * context, uint events)
 	/*
 	 *	Catch recursion
 	 */
-	if (events & SK_EV_writable)
+	if (events & IO_EV_writable)
 	{
 		assert(self->pipe->writable);
 
@@ -238,7 +236,7 @@ void br_stream_on_activity(void * context, uint events)
 		}
 	}
 
-	if (events & SK_EV_readable)
+	if (events & IO_EV_readable)
 	{
 		if (peer->pipe->writable &&
 		    br_bridge_relay(self, peer) < 0)
@@ -247,7 +245,7 @@ void br_stream_on_activity(void * context, uint events)
 		}
 	}
 
-	if (events & SK_EV_error)
+	if (events & IO_EV_broken)
 	{
 		goto err;
 	}

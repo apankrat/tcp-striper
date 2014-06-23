@@ -10,121 +10,142 @@
 #include "libp/event_loop.h"
 
 /*
- *	io_pipe is an abstraction of TCP connection that follows
- *	its send/recv/shutdown semantics. It is used to extend
- *	send/recv behavior and transparently implement things
- *	like atomic send, datagram framing, stream encryption,
- *	compression and so on.
+ *	-- In short --
  *
- *	The best part is that io_pipes are stackable, meaning
- *	that it's possible to create compressed datagram TCP
- *	pipe by chaining 'datagram', 'compress' and 'tcp'
- *	pipes together.
+ *	io_pipe is a duplex, reliable, ordered communication
+ *	channel based on the TCP socket semantics.
  *
- *	--
+ *	-- Sending/receiving --
  *
- *	Each pipe instance has 4 API functions - send, recv,
- *	shutdown and discard. The app uses these to ... well
- *	... write/read data to/from the pipe, send an "EOF"
- *	to the peer and to dispose of the pipe instance.
+ *	Each pipe has two buffers, one for the inbound data (RX) 
+ *	and another for the outbound data (TX).
  *
- *	If a pipe operates with actual network sockets, it
- *	is attached to an event_loop instance at creation.
- *	As such, when the event_loop detects activity on
- *	pipe's sockets, pipe will get a callback, which it
- *	will process and then pass on to the app in a form
- *	on on_activity() or on_connected() callback.
+ *	When there's data in the RX buffer, pipe->readable is
+ *	set to 1 and recv() can be used to retrieve the data.
+ *	When the buffer is exhausted, recv() will return -1 
+ *	and 'readable' will be cleared.
  *
- *	--
+ *	When there's space in the TX buffer, pipe->writable is 
+ *	set to 1 and send() is likely to send at least some 
+ *	of the data passed to it. When TX buffer gets full,
+ *	send() will return either -1 or less than it was asked 
+ *	to send and 'writable' will be cleared.
  *
- *	on_activity() callback is issued as follows:
+ *	To tell apart fatal and EAGAIN failures with send/recv,
+ *	calling code should look at the pipe->broken flag as 
+ *	described below.
  *
- *	   SK_EV_readable - if there's pending data to be
- *	                    read or a pending EOF.
+ *	-- Events --
  *
- *	   SK_EV_writable - if it's possible to write into
- *	                    the pipe, including completion
- *	                    of a pending connect() call
+ *	When a TX buffer congestion clears or new data arrives
+ *	in the RX buffer, pipe sets respectively 'writable' or
+ *	'readable' flag and issues the on_activity() callback
+ *	to the application.
  *
- *	   SK_EV_error    - if the pipe becomes broken and
- *	                    can no longer be used for I/O,
- *	                    or if pending connect() failed
+ *	The way the pipe itself learns about these events is
+ *	through a callback from an event_loop or through an
+ *	on_activity() callback from another pipe that it may
+ *	be using for the actual I/O.
  *
- *	These events are level-triggered, meaning that being
- *	"readable" is a pipe *state* rather than a one-off
- *	event. Monitoring for readability of an already
- *	readable pipe will result in on_activity() callback
- *	on every event_loop cycle.
+ *	In practice it means that if for example the pipe got 
+ *	congested, the app should simply be ticking its event 
+ *	loop and it will receive on_activity() callback with
+ *	IO_EV_writable once the pipe is writable again.
  *
- *	--
+ *	-- FIN --
  *
- *	In many cases a pipe may NOT have an actual socket.
- *	Instead it will use another pipe to send/recv data
- *	to augment IO semantics in some way. The on_activity
- *	callbacks from this kind of pipe will be driven by
- *	on_activity callbacks issued by the underlying pipe
- *	rather than the event_loop directly.
+ *	Pipes support FIN/EOF semantics of TCP sockets. That is
+ *	calling send_fin() will close the pipe for writing and
+ *	will cause recv() on the peer's end return with 0 after
+ *	it retrieves all other incoming data.
  *
- *	--
+ *	When FIN is retrieved with recv(), the 'readable' bit is 
+ *	cleared and the 'fin_rcvd' bit is set.
  *
- *	It is guaranteed that callbacks are NEVER invoked
- *	from a pipe's API call. In other words, the io_pipe
- *	instance is guaranteed to still exist after a call
- *	to send/recv/shutdown returns. These calls do not
- *	recurse back into the app code via callbacks.
+ *	Similarly, calling send_fin() clears 'writable' bit and 
+ *	raises the 'fin_sent' bit.
  *
- *	--
+ *	HOWEVER! send_fin() may complete asynchronously if FIN
+ *	cannot be sent right away. In this case send_fin() will 
+ *	return -1 and the app will get on_activity() callback
+ *	with IO_EV_fin_sent once the FIN does go out.
  *
- *	The status flags are managed by the pipe instance
- *	and are meant for read-only consumption by the app.
+ *	-- Ready state  --
  *
- *	When a send() call encounters a failure or a partial
- *	write due to congestion, the pipe will clear 'writable'
- *	and start monitoring connection for becoming writable
- *	again. When it happens, the pipe will set 'writable'
- *	flag and issue on_activity(SK_EV_writable) callback.
+ *	Lastly, there are two bits that describe general state
+ *	of the pipe - 'ready' and 'broken'.
  *
- *	Similar logic applies to recv() calls that cannot
- *	fetch any data because the data is not there. The
- *	pipe will clear 'readable' flag and start monitoring
- *	for incoming data. If it receives data, it sets the
- *	'readable' flag and issues on_activity(SK_EV_readable).
+ *	Each pipe starts its life with both bits cleared. Once
+ *	it gets into a functional state by completing, for 
+ *	example, its connection handshake, it sets the 'ready' 
+ *	flag and issues on_activity() callback with IO_EV_ready. 
  *
- *	It may also receive an EOF (end of file) if its peer
- *	issues 'shutdown' call. In this case the pipe will
- *	set 'fin_rcvd', issue on_activity(SK_EV_readable) and
- *	the next call to recv() will return 0, which is
- *	consistent with standard POSIX recv() semantics.
+ *	-- Error state --
+ *
+ *	If pipe encounters a fatal error, it sets 'broken' flag.
+ *
+ *	If this happens while executing recv/send/send_fin call, 
+ *	it simply sets 'broken' flag and returns -1.
+ *	
+ *	If this happens when processing an event loop callback, 
+ *	pipe will set the flag and issue on_activity() callback
+ *	with IO_EV_broken.
+ *
+ *	-- The callback --
+ *
+ *	To recap - the on_activity() callback is issued by the 
+ *	pipe when a respective state bit is changed from 0 to 1. 
  *
  */
 typedef struct io_pipe io_pipe;
 
+enum io_event
+{
+	IO_EV_ready    = 0x01,
+	IO_EV_broken   = 0x02,
+	IO_EV_readable = 0x04,
+	IO_EV_writable = 0x08,
+	IO_EV_fin_sent = 0x10
+};
+
 struct io_pipe
 {
-	/* state */
-	int  writable : 1;
+	/* General state */
+	int  ready    : 1;
+	int  broken   : 1;
+
+	/* RX state */
 	int  readable : 1;
-	int  fin_rcvd : 1; /* got FIN from the peer */
-	int  fin_sent : 1; /* sent FIN to the peer  */
+	int  fin_rcvd : 1;
 
-	/* api */
-	void (* init)(io_pipe * self, event_loop * evl);
+	/* TX state */
+	int  writable : 1;
+	int  fin_sent : 1;
 
-	int  (* recv)(io_pipe * self, void * buf, size_t len, int * fatal);
-	int  (* send)(io_pipe * self, const void * buf, size_t len, int * fatal);
-	int  (* shutdown)(io_pipe * self);
+	/* The API */
+	void (* init)(io_pipe * p, event_loop * evl);
 
-	void (* discard)(io_pipe * self);
+	int  (* recv)(io_pipe * p, void * buf, size_t len);
+	int  (* send)(io_pipe * p, const void * buf, size_t len);
+	int  (* send_fin)(io_pipe * p);
 
-	/* callbacks */
-	void (* on_activity) (void * context, uint events);
+	void (* discard)(io_pipe * p);
+
+	/* The callback */
+	void (* on_activity)(void * context, uint io_event_mask);
 	void  * on_context;
 };
 
 /*
- *
+ *	TCP socket wrapper
  */
 io_pipe * new_tcp_pipe(int sk);
+
+/*
+ *	Atomic-send pipe
+ *	send() either accepts whole packet or fails with -1
+ */
+io_pipe * new_atx_pipe(io_pipe * io);
 
 #endif
 
