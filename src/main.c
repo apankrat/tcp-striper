@@ -90,9 +90,6 @@ int main(int argc, char ** argv)
 	io_c2p = new_tcp_pipe(c2p);
 	io_p2s = new_tcp_pipe(p2s);
 
-io_c2p = new_atx_pipe(io_c2p);
-io_p2s = new_atx_pipe(io_p2s);
-
 	br = new_io_bridge(io_c2p, io_p2s);
 	br->on_shutdown = on_bridge_down;
 

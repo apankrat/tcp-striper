@@ -41,6 +41,14 @@ the ones my cable provider has :)
 
                          --  STATUS  --
 
+20/09/14
+
+  Formalized io_pipe semantics, see /io/inc/libp/io_pipe.h
+  for details. In particular, added support for send_fin()
+  cases where FIN cannot be sent out right away.
+
+  Cleaned up io_bridge code.
+
 15/09/14
 
   -- 1 --
