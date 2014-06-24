@@ -12,38 +12,29 @@
 
 #include "io_buffer.h"
 
-	#include <stdio.h>
-
 /*
  *
  */
 typedef struct br_stream br_stream;
 typedef struct br_bridge br_bridge;
 
-struct br_stream
+struct br_stream  /* : br_pipe */
 {
 	br_bridge * bridge;
 	br_stream * peer;
 
-	io_pipe   * pipe;
+	br_pipe     base;
+	io_pipe   * pipe; /* a shortcut for base.pipe */
+
 	io_buffer * pending;
-
-	size_t      recv_size;
-
-	const char * name;
-	uint64_t     tx;
-	uint64_t     rx;
-	uint64_t     cong;
 };
 
-struct br_bridge
+struct br_bridge  /* : io_bridge */
 {
 	io_bridge    base;
 
 	event_loop * evl;
 	int          dead : 1;
-	
-	size_t       buf_size;
 
 	br_stream    l; /* left  */
 	br_stream    r; /* right */
@@ -56,9 +47,7 @@ static
 void br_stream_cleanup(br_stream * st)
 {
 	st->pipe->discard(st->pipe);
-
-	if (st->pending)
-		heap_free(st->pending);
+	free_io_buffer(st->pending);
 }
 
 static
@@ -69,7 +58,7 @@ void br_bridge_dispose(br_bridge * br)
 }
 
 /*
- *	flushery and pumpery
+ *	relaying
  */
 static
 int br_stream_flush(br_stream * dst)
@@ -80,29 +69,31 @@ int br_stream_flush(br_stream * dst)
 	assert(dst->pending && dst->pipe->writable);
 
 	bytes = dst->pipe->send(dst->pipe, buf->head, buf->size);
-	if (bytes < 0)
-		return dst->pipe->broken ? -1 : 0;
 
-	dst->tx += bytes;
+	if (bytes < buf->size || ! dst->pipe->writable)
+		dst->base.congestions++;
+
+	if (bytes < 0)
+	{
+		assert(! dst->pipe->writable);
+		return dst->pipe->broken ? -1 : 0;
+	}
+
+	dst->base.tx += bytes;
 
 	if (bytes < buf->size)
 	{
 		/* partial write */
 		assert(! dst->pipe->writable);
+
 		buf->head += bytes;
 		buf->size -= bytes;
-
-		dst->cong++;
 		return 0;
 	}
 
 	/* complete write */
 	free_io_buffer(buf);
 	dst->pending = NULL;
-
-	/* propagate FIN */
-	if (dst->peer->pipe->fin_rcvd)
-		return dst->pipe->send_fin(dst->pipe);
 
 	return 0;
 }
@@ -111,30 +102,45 @@ static
 int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 {
 	io_buffer * buf = *space;
+	size_t recv_size = src->base.recv_size;
 	int bytes;
 
 	assert(src->pipe->readable && dst->pipe->writable);
 	assert(! dst->pending);
-	assert(src->recv_size <= buf->capacity);
 
-	bytes = src->pipe->recv(src->pipe, buf->data, src->recv_size);
+	assert(buf && recv_size <= buf->capacity);
+
+	/*
+	 *	rx
+	 */
+	bytes = src->pipe->recv(src->pipe, buf->data, recv_size);
+
 	if (bytes < 0)
 		return src->pipe->broken ? -1 : 0;
 
 	if (bytes == 0)
 	{
+		/* got FIN */
 		assert(  src->pipe->fin_rcvd);
 		assert(! dst->pipe->fin_sent);
-		return dst->pipe->send_fin(dst->pipe);
+
+		return (dst->pipe->send_fin(dst->pipe) < 0) &&
+		        dst->pipe->broken ? -1 : 0;
 	}
 
-	src->rx += bytes;
+	src->base.rx += bytes;
 
+	/*
+	 *	tx
+	 */
 	buf->size = bytes;
 	bytes = dst->pipe->send(dst->pipe, buf->data, buf->size);
 
+	if (bytes < buf->size || ! dst->pipe->writable)
+		dst->base.congestions++;
+
 	if (bytes > 0)
-		dst->tx += bytes;
+		dst->base.tx += bytes;
 
 	if (bytes == buf->size)
 		return 0;
@@ -146,6 +152,9 @@ int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 		bytes = 0;
 	}
 
+	/*
+	 *	congested
+	 */
 	assert(0 <= bytes && bytes < buf->size);
 	assert(! dst->pipe->writable);
 
@@ -155,8 +164,6 @@ int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 	/* appropriate the buffer */
 	dst->pending = buf;
 	*space = NULL;
-
-	dst->cong++;
 	return 0;
 }
 
@@ -164,8 +171,13 @@ static
 int br_bridge_relay(br_stream * src, br_stream * dst)
 {
 	io_buffer * buf;
+	size_t buf_size;
 
-	buf = alloc_io_buffer(src->bridge->buf_size, NULL, 0);
+	buf_size = src->peer->base.recv_size;
+	if (buf_size < src->base.recv_size)
+		buf_size = src->base.recv_size;
+
+	buf = alloc_io_buffer(buf_size, NULL, 0);
 	if (! buf)
 		return -1;
 
@@ -177,9 +189,12 @@ int br_bridge_relay(br_stream * src, br_stream * dst)
 			return -1;
 		}
 
-		/* if tx_rx() took away 'buf', then it can only
-		 * be because dst wasn't fully writable, and so
-		 * we'll break out of this while() in a moment */
+		/*
+		 *	We either still have the buf or it was
+		 *	taken away by dst, because it got clogged
+		 *	and so it's no longer writable (and we'll
+		 *	break out of the loop in a moment).
+		 */
 		assert(buf || ! dst->pipe->writable);
 	}
 
@@ -188,22 +203,8 @@ int br_bridge_relay(br_stream * src, br_stream * dst)
 }
 
 /*
- *	a callback from pipes
+ *	a callback from the pipes
  */
-static
-void br_stream_dump(br_stream * st, uint events)
-{
-	printf("( [%c%c%c] w:%d r:%d f:%d/%d rx:%llu tx:%llu cong:%llu )",
-		(events & IO_EV_writable) ? 'W' : '.',
-		(events & IO_EV_readable) ? 'R' : '.',
-		(events & IO_EV_broken)   ? 'X' : '.',
-		st->pipe->writable ? 1 : 0,
-		st->pipe->readable ? 1 : 0,
-		st->pipe->fin_sent ? 1 : 0,
-		st->pipe->fin_rcvd ? 1 : 0,
-		st->rx, st->tx, st->cong);
-}
-
 static
 void br_stream_on_activity(void * context, uint events)
 {
@@ -211,13 +212,14 @@ void br_stream_on_activity(void * context, uint events)
 	br_stream * peer = self->peer;
 	br_bridge * br = self->bridge;
 
-	br_stream_dump(&br->l, (&br->l == self) ? events : 0);
-	printf("  ");
-	br_stream_dump(&br->r, (&br->r == self) ? events : 0);
-	printf("\r");
+	/*
+	 *
+	 */
+	if (br->dead)
+		return;
 
 	/*
-	 *	Catch recursion
+	 *
 	 */
 	if (events & IO_EV_writable)
 	{
@@ -298,19 +300,20 @@ void br_bridge_discard(io_bridge * self)
  *
  */
 static
-void br_setup_stream(br_stream * st, io_pipe * io, br_bridge * br)
+void br_setup_stream(br_bridge * br, br_stream * st, io_pipe * io)
 {
 	st->bridge = br;
 	st->peer = (st == &br->l) ? &br->r : &br->l;
+
+	st->base.pipe = io;
+	st->base.recv_size = 1024*1024;
+	st->base.tx = 0;
+	st->base.rx = 0;
+	st->base.congestions = 0;
+
 	st->pipe = io;
 	st->pipe->on_activity = br_stream_on_activity;
 	st->pipe->on_context = st;
-	st->recv_size = 8*1024;
-
-	st->name = (st == &br->l) ? "L" : "R";
-	st->tx = 0;
-	st->rx = 0;
-	st->cong = 0;
 }
 
 io_bridge * new_io_bridge(io_pipe * l, io_pipe * r)
@@ -319,17 +322,14 @@ io_bridge * new_io_bridge(io_pipe * l, io_pipe * r)
 
 	br = (br_bridge*)heap_zalloc(sizeof *br);
 
-	br->base.l = l;
-	br->base.r = r;
+	br->base.l = &br->l.base;
+	br->base.r = &br->r.base;
+
 	br->base.init = br_bridge_init;
 	br->base.discard = br_bridge_discard;
 
-	br_setup_stream(&br->l, l, br);
-	br_setup_stream(&br->r, r, br);
-
-	br->buf_size = 
-		(br->l.recv_size < br->r.recv_size) ? 
-		 br->r.recv_size : br->l.recv_size;
+	br_setup_stream(br, &br->l, l);
+	br_setup_stream(br, &br->r, r);
 
 	return &br->base;
 }

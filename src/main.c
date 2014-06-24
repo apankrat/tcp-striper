@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <time.h>
 
@@ -40,6 +41,9 @@ int main(int argc, char ** argv)
 	int yes = 1;
 
 	//
+	signal(SIGPIPE, SIG_IGN);
+
+	//
 	evl = new_event_loop_select();
 
 	//
@@ -66,15 +70,17 @@ int main(int argc, char ** argv)
 	sk_unblock(c2p);
 
 	//
-	SOCKADDR_IN_ADDR(&sa) = inet_addr("127.0.0.1");
-	SOCKADDR_IN_PORT(&sa) = htons(22);
-
+	SOCKADDR_IN_ADDR(&sa) = inet_addr(argc > 1 ? argv[1] : "127.0.0.1");
+	SOCKADDR_IN_PORT(&sa) = htons( (argc > 2) ? atoi(argv[2]) : 22 );
+	
 	p2s = sk_create(AF_INET, SOCK_STREAM, 0);
 	if (p2s < 0)
 		return 4;
 
 	if (sk_unblock(p2s) < 0)
 		return 5;
+	
+	printf("connecting to %s ...\n", sa_to_str(&sa, buf, sizeof buf));
 
 	if (sk_connect_ip4(p2s, &sa) < 0 &&
 	    sk_conn_fatal(sk_errno(p2s)))
@@ -83,6 +89,9 @@ int main(int argc, char ** argv)
 	//
 	io_c2p = new_tcp_pipe(c2p);
 	io_p2s = new_tcp_pipe(p2s);
+
+io_c2p = new_atx_pipe(io_c2p);
+io_p2s = new_atx_pipe(io_p2s);
 
 	br = new_io_bridge(io_c2p, io_p2s);
 	br->on_shutdown = on_bridge_down;
@@ -93,10 +102,27 @@ int main(int argc, char ** argv)
 	{
 		static uint tick = 0;
 		evl->monitor(evl, 100);
-		printf("\r%u  |  ", tick++);
-		if (tick % 10 == 0)
-			fflush(stdout);
+		
+		if ( (tick++ % 17) && ! enough )
+			continue;
+
+		printf("\r%u  |  [%c%c %10llu %10llu %4u] [%c%c %10llu %10llu %4u]", 
+			tick++, 
+			br->l->pipe->writable ? 'w' :
+			br->l->pipe->fin_sent ? 'x' : '-',
+			br->l->pipe->readable ? 'r' : 
+			br->l->pipe->fin_rcvd ? 'x' : '-',
+			br->l->tx, br->l->rx, br->l->congestions,
+			br->r->pipe->writable ? 'w' : 
+			br->r->pipe->fin_sent ? 'x' : '-',
+			br->r->pipe->readable ? 'r' : 
+			br->r->pipe->fin_rcvd ? 'x' : '-',
+			br->r->tx, br->r->rx, br->r->congestions);
+
+		fflush(stdout);
 	}
+
+	printf("\n");
 
 	return 0;
 }

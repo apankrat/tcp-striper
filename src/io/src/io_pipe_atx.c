@@ -21,7 +21,7 @@ struct atx_pipe
 	io_pipe     base;
 	io_pipe   * io;
 	io_buffer * pending;
-	int         shutdown : 1;
+	int         want_fin : 1;
 };
 
 typedef struct atx_pipe atx_pipe;
@@ -32,6 +32,8 @@ typedef struct atx_pipe atx_pipe;
 static
 void atx_pipe_clone_state(atx_pipe * p)
 {
+	p->base.ready    = p->io->ready;
+	p->base.broken   = p->io->broken;
 	p->base.readable = p->io->readable;
 	p->base.writable = p->pending ? 0 : p->io->writable;
 	p->base.fin_sent = p->io->fin_sent;
@@ -53,29 +55,26 @@ void atx_pipe_init(io_pipe * self, event_loop * evl)
 }
 
 static
-int atx_pipe_recv(io_pipe * self, void * buf, size_t len, int * fatal)
+int atx_pipe_recv(io_pipe * self, void * buf, size_t len)
 {
 	atx_pipe * p = struct_of(self, atx_pipe, base);
 	int r;
 	
-	r = p->io->recv(p->io, buf, len, fatal);
+	r = p->io->recv(p->io, buf, len);
 	atx_pipe_clone_state(p);
 	return r;
 }
 
 static
-int atx_pipe_send(io_pipe * self, const void * buf, size_t len, int * fatal)
+int atx_pipe_send(io_pipe * self, const void * buf, size_t len)
 {
 	atx_pipe * p = struct_of(self, atx_pipe, base);
 	int r;
 
 	if (p->pending)
-	{
-		*fatal = 0;
 		return -1;
-	}
 
-	r = p->io->send(p->io, buf, len, fatal);
+	r = p->io->send(p->io, buf, len);
 	atx_pipe_clone_state(p);
 
 	if (r < 0)
@@ -87,8 +86,9 @@ int atx_pipe_send(io_pipe * self, const void * buf, size_t len, int * fatal)
 	assert(r < len);
 
 	/* hellooo ... partial send */
+	assert(! p->base.writable);
+
 	p->pending = alloc_io_buffer(len-r, buf+r, len-r);
-	p->base.writable = 0;
 
 	return len;
 }
@@ -99,9 +99,11 @@ int atx_pipe_send_fin(io_pipe * self)
 	atx_pipe * p = struct_of(self, atx_pipe, base);
 	int r;
 
+	assert(! p->base.fin_sent && ! p->want_fin); /* don't call twice */
+
 	if (p->pending)
 	{
-		p->shutdown = 1;
+		p->want_fin = 1;
 		return 0;
 	}
 
@@ -114,8 +116,6 @@ static
 void atx_pipe_discard(io_pipe * self)
 {
 	atx_pipe * p = struct_of(self, atx_pipe, base);
-
-//	xx
 
 	p->io->discard(p->io);
 
@@ -130,29 +130,29 @@ void atx_pipe_on_activity(void * context, uint events)
 {
 	atx_pipe * p = (atx_pipe *)context;
 
-	if ( (events & SK_EV_writable) && p->pending )
+	if ( (events & IO_EV_writable) && p->pending )
 	{
 		/*
 		 *	flush pending data
 		 */
 		io_buffer * buf = p->pending;
-		int r, fatal;
+		int r;
 
-		r = p->io->send(p->io, buf->head, buf->size, &fatal);
+		r = p->io->send(p->io, buf->head, buf->size);
 
 		if (r < 0)
 		{
-			if (fatal)
-				events |= SK_EV_error;
+			if (p->io->broken)
+				events |= IO_EV_broken;
 				
-			events &= ~SK_EV_writable;
+			events &= ~IO_EV_writable;
 		}
 		else
 		if (r < buf->size)
 		{
 			buf->head += r;
 			buf->size -= r;
-			events &= ~SK_EV_writable;
+			events &= ~IO_EV_writable;
 		}
 		else
 		{
@@ -162,19 +162,19 @@ void atx_pipe_on_activity(void * context, uint events)
 			p->pending = NULL;
 
 			if (! p->io->writable)
-				events &= ~SK_EV_writable;
+				events &= ~IO_EV_writable;
 		}
 
 		/*
 		 *	execute pending shutdown()
 		 */
-		if (! p->pending && p->shutdown)
+		if (! p->pending && p->want_fin)
 		{
 			r = p->io->send_fin(p->io);
-			if (r < 0)
-				events |= SK_EV_error;
+			if (r < 0 && p->io->broken)
+				events |= IO_EV_broken;
 
-			events &= ~SK_EV_writable;
+			events &= ~IO_EV_writable;
 		}
 	}
 

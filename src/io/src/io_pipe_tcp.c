@@ -33,14 +33,15 @@ static
 void tcp_pipe_adjust_event_mask(tcp_pipe * p)
 {
 	uint sk_mask = 0;
+	
+	if (p->base.ready && ! p->base.broken)
+	{
+		if (! p->base.readable && ! p->base.fin_rcvd)
+			sk_mask |= SK_EV_readable;
 
-	assert(p->base.ready);
-
-	if (! p->base.readable && ! p->base.fin_rcvd && ! p->base.broken)
-		sk_mask |= SK_EV_readable;
-
-	if (! p->base.writable && ! p->base.fin_sent && ! p->base.broken)
-		sk_mask |= SK_EV_writable;
+		if (! p->base.writable && ! p->base.fin_sent)
+			sk_mask |= SK_EV_writable;
+	}
 
 	if (p->sk_mask == sk_mask)
 		return;
@@ -55,8 +56,8 @@ void tcp_pipe_tag_broken(tcp_pipe * p)
 	p->base.broken = 1;
 
 	/* be pedantic */
-	p->base.readable = 1;
-	p->base.writable = 1;
+	p->base.readable = 0;
+	p->base.writable = 0;
 }
 
 static

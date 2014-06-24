@@ -48,6 +48,7 @@ void reset_io_buffer(io_buffer * buf)
 
 void free_io_buffer (io_buffer * buf)
 {
-	heap_free(buf);
+	if (buf)
+		heap_free(buf);
 }
 
