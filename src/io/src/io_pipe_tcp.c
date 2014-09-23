@@ -11,7 +11,7 @@
 #include "libp/alloc.h"
 #include "libp/socket.h"
 
-#include "libp/io_pipe_misc.h"
+#include "pipe_misc.h"
 
 /*
  *
@@ -51,16 +51,6 @@ void tcp_pipe_adjust_event_mask(tcp_pipe * p)
 }
 
 static
-void tcp_pipe_tag_broken(tcp_pipe * p)
-{
-	p->base.broken = 1;
-
-	/* be pedantic */
-	p->base.readable = 0;
-	p->base.writable = 0;
-}
-
-static
 void tcp_pipe_on_activity(void * ctx, uint sk_events)
 {
 	tcp_pipe * p = (tcp_pipe *)ctx;
@@ -86,7 +76,7 @@ void tcp_pipe_on_activity(void * ctx, uint sk_events)
 		if ( (sk_events & SK_EV_error) ||
 		    ((sk_events & SK_EV_writable) && (err != 0)) )
 		{
-			tcp_pipe_tag_broken(p);
+			pipe_tag_as_broken(&p->base);
 			io_events = IO_EV_broken;
 			goto callback;
 		}
@@ -134,7 +124,7 @@ void tcp_pipe_init(io_pipe * self, event_loop * evl)
 
 	assert(! p->evl);              /* don't initialize twice   */
 	assert(  p->base.on_activity); /* must be set */
-	assert(  io_pipe_state(self) == 0x00 );
+	assert(  pipe_get_state(self) == 0x00 );
 
 	p->evl = evl;
 	p->sk_mask = SK_EV_writable;
@@ -161,7 +151,7 @@ int tcp_pipe_recv(io_pipe * self, void * buf, size_t len)
 	{
 		self->readable = 0;
 		if (sk_recv_fatal( sk_errno(p->sk) ))
-			tcp_pipe_tag_broken(p);
+			pipe_tag_as_broken(&p->base);
 	}
 	else
 	{
@@ -198,7 +188,7 @@ int tcp_pipe_send(io_pipe * self, const void * buf, size_t len)
 	{
 		self->writable = 0;
 		if (sk_send_fatal( sk_errno(p->sk) ))
-			tcp_pipe_tag_broken(p);
+			pipe_tag_as_broken(&p->base);
 	}
 
 	tcp_pipe_adjust_event_mask(p);
@@ -218,7 +208,7 @@ int tcp_pipe_send_fin(io_pipe * self)
 
 	if (r < 0)
 	{
-		tcp_pipe_tag_broken(p);
+		pipe_tag_as_broken(&p->base);
 	}
 	else
 	{

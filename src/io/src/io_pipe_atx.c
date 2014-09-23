@@ -12,6 +12,7 @@
 #include "libp/socket.h"
 
 #include "io_buffer.h"
+#include "pipe_misc.h"
 
 /*
  *
@@ -32,12 +33,10 @@ typedef struct atx_pipe atx_pipe;
 static
 void atx_pipe_clone_state(atx_pipe * p)
 {
-	p->base.ready    = p->io->ready;
-	p->base.broken   = p->io->broken;
-	p->base.readable = p->io->readable;
-	p->base.writable = p->pending ? 0 : p->io->writable;
-	p->base.fin_sent = p->io->fin_sent;
-	p->base.fin_rcvd = p->io->fin_rcvd;
+	pipe_clone_state(&p->base, p->io);
+
+	if (p->pending)
+		p->base.writable = 0;
 }
 
 /*
@@ -89,6 +88,7 @@ int atx_pipe_send(io_pipe * self, const void * buf, size_t len)
 	assert(! p->base.writable);
 
 	p->pending = alloc_io_buffer(len-r, buf+r, len-r);
+	assert(p->pending);
 
 	return len;
 }

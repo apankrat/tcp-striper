@@ -143,9 +143,27 @@ io_pipe * new_tcp_pipe(int sk);
 
 /*
  *	Atomic-send pipe
+ *
  *	send() either accepts whole packet or fails with -1
  */
 io_pipe * new_atx_pipe(io_pipe * io);
+
+/*
+ *	Datagram pipe
+ *
+ *	send() expects each blob of data passed to it to be 
+ *	in <size><payload> format, whereby <size> is packed 
+ *	with io_store_size()
+ *
+ *	recv() received and parses <size> first, validates 
+ *	it against maximum datagram size and then proceeds
+ *	to reassemble the datagram and return it to the 
+ *	calling code (as <size><payload>).
+ *
+ *	If reassembled packet is too big to fit into the 
+ *	buffer passed to recv(), it's a fatal error.
+ */
+io_pipe * new_dgm_pipe(io_pipe * io, size_t max_size);
 
 #endif
 

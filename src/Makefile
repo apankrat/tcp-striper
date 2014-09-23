@@ -1,3 +1,5 @@
+#CFLAGS += -O2
+
 CFLAGS += -Wall -DNDEBUG -g \
 	-I. \
 	-Icore/inc \
@@ -16,25 +18,27 @@ SRC = \
 	io/src/io_buffer.c \
 	io/src/io_pipe_atx.c \
 	io/src/io_pipe_tcp.c \
+	io/src/io_serialize.c \
 	sys/src.linux/termio.c \
-	sys/src/socket_utils.c \
-	main.c 
-#	connection.c \
-#	connection_tcp.c 
-#	core/src/alloc.c \
-	core/src/assert.c \
-	data/src/map.c \
-	event_loop/src.linux/event_loop_select.c \
-	data_buffer.c \
-	proxy_types.c \
-	socket_utils.c \
-	main.c
+	sys/src/socket_utils.c
 
-OBJS = $(patsubst %,_obj/%, $(subst .c,.o,$(SRC)))
+EXE = \
+	tcp-relay \
+	tests/test-serialize
 
-all: tcp-striper
+all: $(EXE)
 
--include $(OBJS:.o=.d)
+#
+#	the build machinery
+#
+OBJ = $(patsubst %,_obj/%, $(subst .c,.o,$(SRC)))
+
+EXE_SRC = $(patsubst %,%.c, $(EXE))
+EXE_OBJ = $(patsubst %,_obj/%, $(subst .c,.o,$(EXE_SRC)))
+
+-include $(OBJ:.o=.d) $(EXE_OBJ:.o=.d)
+
+#
 
 _obj/%.o: %.c
 	@echo c: $<
@@ -44,9 +48,9 @@ _obj/%.o: %.c
 	@sed -e 's/^/_obj\//' < _obj/$*.d > _obj/$*.dd
 	@mv _obj/$*.dd _obj/$*.d
 
-tcp-striper: $(OBJS)
+$(EXE): $(OBJ) $(EXE_OBJ)
 	@echo l: $@
-	@$(CC) $(LDFLAGS) $(OBJS) -o $@
+	@$(CC) $(LDFLAGS) $(OBJ) $(patsubst %,_obj/%.o,$@) -o $@
 
 clean:
-	rm -rf tcp-striper _obj
+	rm -rf _obj $(EXE)
