@@ -13,9 +13,12 @@
  *	A set of functions responsible for packing and extracing
  *	various data types to/from a binary blob.
  *
- *	Each function returns a number of bytes used from the
- *	buffer or -1 for an error, which means 'no enough space' 
- *	for store() and 'malformed data' for parse()
+ *	store() returns a number of bytes used from the buffer.
+ *	If 'buf' is NULL, store() returns space required.
+ *
+ *	parse() returns a number of bytes used from the buffer,
+ *	0 if it rans out of data while parsing and -1 is 'buf' 
+ *	contains invalid data.
  */
 int io_store_size(uint8_t * buf, size_t size, size_t value);
 int io_parse_size(const uint8_t * buf, size_t size, size_t * value);

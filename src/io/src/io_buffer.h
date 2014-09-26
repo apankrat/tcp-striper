@@ -28,8 +28,8 @@ typedef struct io_buffer io_buffer;
  *
  */
 io_buffer * alloc_io_buffer(size_t capacity, const void * data, size_t size);
-void        reset_io_buffer(io_buffer * buf);
-void        free_io_buffer (io_buffer * buf);
+void reset_io_buffer(io_buffer * buf);
+void free_io_buffer (io_buffer * buf);
 
 #endif
 

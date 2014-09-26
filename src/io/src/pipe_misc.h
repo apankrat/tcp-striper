@@ -8,6 +8,7 @@
 #define _LIBP_IO_PIPE_MISC_H_
 
 #include "libp/io_pipe.h"
+#include <stdio.h>
 
 /*
  *	io_pipe state as bitmask

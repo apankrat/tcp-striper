@@ -19,5 +19,10 @@
  */
 #define sizeof_array(a) (sizeof(a) / sizeof(a[0]))
 
+/*
+ *	Generic version
+ */
+#define __max(a,b) ((a) < (b) ? (b) : (a))
+
 #endif
 

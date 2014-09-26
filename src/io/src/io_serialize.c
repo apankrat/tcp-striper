@@ -60,12 +60,8 @@ int io_store_size_unrolled(uint8_t * buf, size_t len, size_t val)
 }
 
 /*
- *	Unrolled version is almost twice as fast as generic,
- *	so use the unrolled one.
- */
-int io_store_size(uint8_t * buf, size_t len, size_t val)
+int io_store_size_generic(uint8_t * buf, size_t len, size_t val)
 {
-/*
 	int r;
 
 	for (r = 0 ; r < len; r++)
@@ -82,13 +78,30 @@ int io_store_size(uint8_t * buf, size_t len, size_t val)
 	}
 
 	return -1;
-*/
+}
+ */
+
+int io_store_size(uint8_t * buf, size_t len, size_t val)
+{
+	if (! buf)
+	{
+		return (val & 0xF0000000) ? -1 :
+		       (val & 0x0FE00000) ?  4 : 
+		       (val & 0x001FC000) ?  3 :
+		       (val & 0x00003F10) ?  2 : 1;
+	}
+
+	/*
+	 *	Unrolled version is almost twice as fast
+	 *	as generic, so use the unrolled one.
+	 */
 	return io_store_size_unrolled(buf, len, val);
 }
 
 /*
- *	Unrolled version is within a couple of % of generic
- *	version performance, so use the generic one.
+ *	Unrolled version ends up being within a couple of 
+ *	% of generic version performance, so no point in
+ *	using it.
  */
 int io_parse_size(const uint8_t * buf, size_t len, size_t * ret)
 {
@@ -100,23 +113,23 @@ int io_parse_size(const uint8_t * buf, size_t len, size_t * ret)
 	for (r = 0; r < len; off += 7, r++)
 	{
 		oct = *buf++;
-			
+
 		if (oct & 0x80)
 		{
 			val |= (oct & 0x7F) << off;
 			continue;
 		}
-		
+
 		if ( (off < 28) || ((off == 28) && (oct < 0x10)) )
 		{
 			*ret = val | (oct << off);
-			return r;
+			return r+1;
 		}
 
 		/* 32-bit overflow ! */
-		break;
+		return -1;
 	}
 
-	return -1;
+	return (off < 28) ? 0 : -1;
 }
 

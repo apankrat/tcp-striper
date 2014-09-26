@@ -27,7 +27,7 @@ io_buffer * alloc_io_buffer(size_t capacity, const void * data, size_t size)
 	buf->capacity = capacity;
 	buf->head = buf->data;
 
-	if (data)
+	if (data && size)
 	{
 		memcpy(buf->data, data, size);
 		buf->size = size;
@@ -46,7 +46,7 @@ void reset_io_buffer(io_buffer * buf)
 	buf->size = 0;
 }
 
-void free_io_buffer (io_buffer * buf)
+void free_io_buffer(io_buffer * buf)
 {
 	if (buf)
 		heap_free(buf);

@@ -41,6 +41,60 @@ the ones my cable provider has :)
 
                          --  STATUS  --
 
+26/09/14
+
+  Added datagram pipe - that is a transport layer that
+  implements standard pipe semantics *and* preserves 
+  boundaries of packets send()/recv() by the peers.
+
+  If A sends out 3, 123, 4 bytes, then with plain TCP
+  its peer may end up receiving a single packet of 130
+  bytes. However, if they are talking over a datagram
+  pipe, the recv() is guaranteed to retrieve 3 chunks,
+  respectively - 3, 123 and 4 byte in size.
+
+  To play with this, use 'tcp-proxy'.
+
+  1. Start a client-facing proxy first:
+
+     ./tcp-proxy -c 0.0.0.0:11111 127.0.0.1 22222
+
+  This will accept a connection on port 11111, connect
+  out to port 22222 and then wrap all data received from
+  11111 into datagrams before sending them out to 22222.
+  It will also obviously strip the datagram packaging in 
+  reverse direction.
+
+  2. Start a server-facing proxy second:
+
+    ./tcp-proxy -s 0.0.0.0:22222 127.0.0.1:22
+
+  This will accept a connection on 22222, use it to 
+  speak the datagram protocol with a peer and forward
+  raw payloads to the sshd on port 22.
+
+  3. Point your ssh at 11111 and observe the magic -
+
+    ssh -p 11111 localhost
+
+  Altogether, the contraption will look like this 
+
+    +--------------+                  +--------------------+
+    | ssh -p 11111 |  -- ssh/tcp -->  | tcp-proxy -c 11111 |
+    +--------------+                  +--------------------+
+                                                 |
+					         |
+                                            ssh/dgm/tcp
+                                                 |
+					         v
+    +--------------+                  +--------------------+
+    | sshd         |  <-- ssh/tcp --  | tcp-proxy -s 22222 |
+    +--------------+                  +--------------------+
+
+  which is getting close to the original goal. All that's
+  left is to replace "datagram" protocol with "striped"
+  delivery across several connections.
+
 20/09/14
 
   Formalized io_pipe semantics, see /io/inc/libp/io_pipe.h

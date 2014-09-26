@@ -2,6 +2,7 @@
 
 CFLAGS += -Wall -DNDEBUG -g \
 	-I. \
+	-Icore/inc.linux \
 	-Icore/inc \
 	-Idata/inc \
 	-Ievl/inc \
@@ -17,12 +18,14 @@ SRC = \
 	io/src/io_bridge.c \
 	io/src/io_buffer.c \
 	io/src/io_pipe_atx.c \
+	io/src/io_pipe_dgm.c \
 	io/src/io_pipe_tcp.c \
 	io/src/io_serialize.c \
 	sys/src.linux/termio.c \
 	sys/src/socket_utils.c
 
 EXE = \
+	tcp-proxy \
 	tcp-relay \
 	tests/test-serialize
 

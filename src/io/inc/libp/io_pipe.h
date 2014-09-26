@@ -134,6 +134,8 @@ struct io_pipe
 	/* The callback */
 	void (* on_activity)(void * context, uint io_event_mask);
 	void  * on_context;
+
+	const char * _tag;
 };
 
 /*
@@ -151,17 +153,9 @@ io_pipe * new_atx_pipe(io_pipe * io);
 /*
  *	Datagram pipe
  *
- *	send() expects each blob of data passed to it to be 
- *	in <size><payload> format, whereby <size> is packed 
- *	with io_store_size()
- *
- *	recv() received and parses <size> first, validates 
- *	it against maximum datagram size and then proceeds
- *	to reassemble the datagram and return it to the 
- *	calling code (as <size><payload>).
- *
- *	If reassembled packet is too big to fit into the 
- *	buffer passed to recv(), it's a fatal error.
+ *	send() prepends size to the payload forming a UDP-like
+ *	datagram that is reassembled on the receiving end that
+ *	strips the size off it and reports just the payload
  */
 io_pipe * new_dgm_pipe(io_pipe * io, size_t max_size);
 
