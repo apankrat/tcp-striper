@@ -155,10 +155,11 @@ io_pipe * new_atx_pipe(io_pipe * io);
 /*
  *	Datagram pipe
  *
- *	send() prepends size of the data to the payload forming 
- *	a UDP-like datagram. The receiving end reassembles the
- *	datagram, strips off the size header and reports just 
- *	the original payload.
+ *	send() prepends the size of the data to the payload
+ *	before putting it on the wire, thus forming a UDP-like 
+ *	datagram. The receiving end reassembles the datagram, 
+ *	strips off the size header and delivers the original
+ *	payload. See UDP for details.
  */
 io_pipe * new_dgm_pipe(io_pipe * io, size_t max_size);
 
