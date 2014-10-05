@@ -66,9 +66,11 @@
  *	raises the 'fin_sent' bit.
  *
  *	HOWEVER! send_fin() may complete asynchronously if FIN
- *	cannot be sent right away. In this case send_fin() will 
- *	return -1 and the app will get on_activity() callback
- *	with IO_EV_fin_sent once the FIN does go out.
+ *	cannot be sent right away, e.g. due to some data in the
+ *	TX buffer that needs to be sent out firt. In this case 
+ *	send_fin() will return -1 and the app will get the
+ *	on_activity() callback with IO_EV_fin_sent once the FIN 
+ *	does go out.
  *
  *	-- Ready state  --
  *
@@ -146,16 +148,17 @@ io_pipe * new_tcp_pipe(int sk);
 /*
  *	Atomic-send pipe
  *
- *	send() either accepts whole packet or fails with -1
+ *	send() either accepts the whole packet or fails with -1
  */
 io_pipe * new_atx_pipe(io_pipe * io);
 
 /*
  *	Datagram pipe
  *
- *	send() prepends size to the payload forming a UDP-like
- *	datagram that is reassembled on the receiving end that
- *	strips the size off it and reports just the payload
+ *	send() prepends size of the data to the payload forming 
+ *	a UDP-like datagram. The receiving end reassembles the
+ *	datagram, strips off the size header and reports just 
+ *	the original payload.
  */
 io_pipe * new_dgm_pipe(io_pipe * io, size_t max_size);
 
