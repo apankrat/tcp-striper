@@ -158,7 +158,7 @@ int dgm_pipe_recv(io_pipe * self, void * buf, size_t len)
 	}
 	else
 	{
-		p->rx = alloc_io_buffer(len + p->max_hdr_size, NULL, 0);
+		p->rx = alloc_io_buffer(p->max_hdr_size + len, NULL, 0);
 	}
 
 	assert(p->rx && p->rx->head == p->rx->data);
@@ -167,7 +167,6 @@ int dgm_pipe_recv(io_pipe * self, void * buf, size_t len)
 	/* OK, read a bit more */
 	space  = p->rx->capacity;
 	space -= p->rx->size;
-	space -= p->rx->head - p->rx->data; /* that's a nop */
 
 	r = p->io->recv(p->io, p->rx->head + p->rx->size, space);
 	if (r < 0)
