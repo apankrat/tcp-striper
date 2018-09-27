@@ -39,7 +39,7 @@ typedef struct dgm_pipe dgm_pipe;
 static
 void dgm_pipe_clone_state(dgm_pipe * p)
 {
-	pipe_clone_state(&p->base, p->io);
+	clone_pipe_state(&p->base, p->io);
 }
 
 /*
@@ -208,7 +208,7 @@ err:
 	free_io_buffer(p->rx);
 	p->rx = NULL;
 
-	pipe_tag_as_broken(&p->base);
+	tag_pipe_as_broken(&p->base);
 	return -1;
 }
 
@@ -231,7 +231,7 @@ int dgm_pipe_send(io_pipe * self, const void * buf, size_t len)
 	r = io_store_size(dgm->head, dgm->capacity, len);
 	if (r < 0)
 	{
-		pipe_tag_as_broken(&p->base);
+		tag_pipe_as_broken(&p->base);
 		free_io_buffer(dgm);
 		return -1;
 	}
