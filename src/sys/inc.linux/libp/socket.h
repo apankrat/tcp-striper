@@ -7,6 +7,8 @@
 #ifndef _LIBP_SOCKET_H_linux_
 #define _LIBP_SOCKET_H_linux_
 
+#include "libp/macros.h"
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -73,19 +75,19 @@ int sk_init()
  *		int sk_close(int sk);
  */
 
-static inline
+static_inline
 int sk_create(int family, int type, int protocol)
 {
 	return socket(family, type, protocol);
 }
 
-static inline
+static_inline
 int sk_shutdown(int sk)
 {
 	return shutdown(sk, SHUT_WR);
 }
 
-static inline
+static_inline
 int sk_close(int sk)
 {
 	return close(sk);
@@ -99,25 +101,25 @@ int sk_close(int sk)
   *		int sk_listen(int sk, int backlog);
   *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
   */
-static inline
+static_inline
 int sk_bind(int sk, const sockaddr * addr, socklen_t alen)
 {
 	return bind(sk, addr, alen);
 }
 
-static inline
+static_inline
 int sk_connect(int sk, const sockaddr * a, socklen_t alen)
 {
 	return connect(sk, a, alen);
 }
 
-static inline
+static_inline
 int sk_listen(int sk, int backlog)
 {
 	return listen(sk, backlog);
 }
 
-static inline
+static_inline
 int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
 {
 	return accept(sk, addr, alen);
@@ -128,13 +130,13 @@ int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
   *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
   */
 
-static inline
+static_inline
 int sk_getsockname(int sk, sockaddr * a, socklen_t * alen)
 {
 	return getsockname(sk, a, alen);
 }
 
-static inline
+static_inline
 int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
 {
 	return getpeername(sk, a, alen);
@@ -152,7 +154,7 @@ int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
  *		              sockaddr * dst, socklen_t dstlen);
  */
 
-static inline
+static_inline
 int sk_recvfrom(int sk, void * buf, size_t len,
                 sockaddr * src, socklen_t * srclen)
 {
@@ -162,13 +164,13 @@ int sk_recvfrom(int sk, void * buf, size_t len,
 	return r;
 }
 
-static inline
+static_inline
 int sk_recv(int sk, void * buf, size_t len)
 {
 	return sk_recvfrom(sk, buf, len, NULL, NULL);
 }
 
-static inline
+static_inline
 int sk_sendto(int sk, const void * buf, size_t len,
               sockaddr * dst, socklen_t dstlen)
 {
@@ -178,7 +180,7 @@ int sk_sendto(int sk, const void * buf, size_t len,
 	return r;
 }
 
-static inline
+static_inline
 int sk_send(int sk, const void * buf, size_t len)
 {
 	return sk_sendto(sk, buf, len, NULL, 0);
@@ -191,14 +193,14 @@ int sk_send(int sk, const void * buf, size_t len)
  *		                  const void * val, socklen_t vlen);
  */
 
-static inline
+static_inline
 int sk_getsockopt(int sk, int level, int opt,
                   void * val, socklen_t vlen)
 {
 	return getsockopt(sk, level, opt, val, &vlen);
 }
 
-static inline
+static_inline
 int sk_setsockopt(int sk, int level, int opt,
                   const void * val, socklen_t vlen)
 {
@@ -214,20 +216,20 @@ int sk_setsockopt(int sk, int level, int opt,
  *		int sk_error(int sk); // aka "slow", getsockopt(so_error)
  */
 
-static inline
+static_inline
 int sk_unblock(int sk)
 {
 	int r = fcntl(sk, F_GETFL);
 	return (r < 0) ? r : fcntl(sk, F_SETFL, r | O_NONBLOCK);
 }
 
-static inline
+static_inline
 int sk_errno()
 {
 	return errno;
 }
 
-static inline
+static_inline
 int sk_error(int sk)
 {
 	int e;
@@ -243,33 +245,33 @@ int sk_error(int sk)
  *		int sk_conn_timeout(int err);
  */
 
-static inline
+static_inline
 int sk_conn_fatal(int err)
 {
 	return (err != EINTR && err != EINPROGRESS);
 }
 
-static inline
+static_inline
 int sk_recv_fatal(int err)
 {
 	return (err != EINTR && err != EAGAIN &&
 	        err != ENOMEM && err != EWOULDBLOCK);
 }
 
-static inline
+static_inline
 int sk_send_fatal(int err)
 {
 	return (err != EINTR && err != EAGAIN &&
 	        err != ENOMEM && err != EWOULDBLOCK);
 }
 
-static inline
+static_inline
 int sk_conn_refused(int err)
 {
 	return (err == ECONNREFUSED);
 }
 
-static inline
+static_inline
 int sk_conn_timeout(int err)
 {
 	return (err == ETIMEDOUT);
@@ -281,7 +283,7 @@ int sk_conn_timeout(int err)
  *		SOCKADDR_IN_ADDR(sa)
  *		SOCKADDR_IN_PORT(sa)
  */
-static inline
+static_inline
 void sockaddr_in_init(sockaddr_in * sa)
 {
 	static sockaddr_in sa_zero = { 0 };

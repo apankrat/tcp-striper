@@ -17,13 +17,13 @@ SRC = \
 	evl/src.linux/event_loop_select.c \
 	io/src/io_bridge.c \
 	io/src/io_buffer.c \
-	io/src/io_pipe_agg.c \
 	io/src/io_pipe_atx.c \
 	io/src/io_pipe_dgm.c \
 	io/src/io_pipe_tcp.c \
 	io/src/io_serialize.c \
 	sys/src.linux/termio.c \
 	sys/src/socket_utils.c
+#	io/src/io_pipe_agg.c
 
 EXE = \
 	tcp-proxy \
