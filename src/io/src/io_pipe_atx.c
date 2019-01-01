@@ -82,12 +82,12 @@ int atx_pipe_send(io_pipe * self, const void * buf, size_t len)
 	if (r == len)
 		return len;
 
-	assert(r < len);
+	assert(r < (int)len);
 
 	/* hellooo ... partial send */
 	assert(! p->base.writable);
 
-	p->pending = alloc_io_buffer(len-r, buf+r, len-r);
+	p->pending = alloc_io_buffer(len-r, (char*)buf+r, len-r);
 	assert(p->pending);
 
 	return len;
@@ -148,7 +148,7 @@ void atx_pipe_on_activity(void * context, uint events)
 			events &= ~IO_EV_writable;
 		}
 		else
-		if (r < buf->size)
+		if (r < (int)buf->size)
 		{
 			buf->head += r;
 			buf->size -= r;

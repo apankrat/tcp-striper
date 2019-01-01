@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{115e5c94-70eb-457b-8c88-69e419d4a140}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\inc">
+      <UniqueIdentifier>{c44f976d-33a9-4534-b09c-0e1ab7580d5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\src">
+      <UniqueIdentifier>{14bdcedb-0d5e-4e4d-b187-279738fc861d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{f3253c71-18be-43d6-9a70-6359d3183fc4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data\inc">
+      <UniqueIdentifier>{b659df85-fbec-4da6-96e2-c1f308d68121}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data\src">
+      <UniqueIdentifier>{d779c1c2-e452-4685-8ed3-49a85b1e8deb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="evl">
+      <UniqueIdentifier>{e5667ccf-45d3-4680-b1b6-f219f9a8e754}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="evl\inc">
+      <UniqueIdentifier>{23a660d5-f0a8-43b9-9477-d7b61c151a98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="io">
+      <UniqueIdentifier>{adb27f96-7de4-4b0f-9d04-c1e51d2ea1fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="io\inc">
+      <UniqueIdentifier>{95c82cf9-b349-45d3-bc1a-5d21b05046c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="io\src">
+      <UniqueIdentifier>{f41e3970-0754-4c58-a358-89adb6f9fefb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sys">
+      <UniqueIdentifier>{9f1f8f6e-7384-4cfe-8fe1-bea264a50754}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sys\inc">
+      <UniqueIdentifier>{c3235fa7-81d1-4161-b80f-8d512863b8dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sys\inc.windows">
+      <UniqueIdentifier>{7658ec0b-ebf3-47f1-a385-bf5358c18d4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sys\src">
+      <UniqueIdentifier>{b1050efd-11fd-43c9-890d-b1669fcf84ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sys\src.windows">
+      <UniqueIdentifier>{cbecfcde-9040-4212-8b87-47063cbcf9f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\inc.windows">
+      <UniqueIdentifier>{440c12ce-35bc-4c38-842c-8d27f8eecb91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="evl\src.windows">
+      <UniqueIdentifier>{d7ee790a-134f-4ab5-87e6-83ac185dd503}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\core\inc\libp\alloc.h">
+      <Filter>core\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\inc\libp\assert.h">
+      <Filter>core\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\inc\libp\macros.h">
+      <Filter>core\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\inc\libp\types.h">
+      <Filter>core\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\data\inc\libp\list.h">
+      <Filter>data\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\data\inc\libp\map.h">
+      <Filter>data\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\evl\inc\libp\event_loop.h">
+      <Filter>evl\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\io\inc\libp\io_bridge.h">
+      <Filter>io\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\io\inc\libp\io_pipe.h">
+      <Filter>io\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\io\inc\libp\io_serialize.h">
+      <Filter>io\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\io\src\io_buffer.h">
+      <Filter>io\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\io\src\pipe_misc.h">
+      <Filter>io\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sys\inc\libp\socket.h">
+      <Filter>sys\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sys\inc\libp\socket_utils.h">
+      <Filter>sys\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sys\inc\libp\termio.h">
+      <Filter>sys\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\sys\inc.windows\libp\socket.h">
+      <Filter>sys\inc.windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\inc.windows\libp\macros.h">
+      <Filter>core\inc.windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\inc\libp\stdio.h">
+      <Filter>core\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\inc.windows\libp\stdio.h">
+      <Filter>core\inc.windows</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\core\src\alloc.c">
+      <Filter>core\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\src\assert.c">
+      <Filter>core\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\data\src\map.c">
+      <Filter>data\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\io\src\io_bridge.c">
+      <Filter>io\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\io\src\io_buffer.c">
+      <Filter>io\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\io\src\io_pipe_atx.c">
+      <Filter>io\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\io\src\io_pipe_dgm.c">
+      <Filter>io\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\io\src\io_pipe_tcp.c">
+      <Filter>io\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\io\src\io_serialize.c">
+      <Filter>io\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\sys\src\socket_utils.c">
+      <Filter>sys\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\tcp-proxy.c" />
+    <ClCompile Include="..\..\src\tcp-relay.c" />
+    <ClCompile Include="..\..\src\evl\src.windows\event_loop_select.c">
+      <Filter>evl\src.windows</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

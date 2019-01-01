@@ -4,13 +4,11 @@
  *
  *	http://swapped.cc/bsd-license
  */
-#ifndef _LIBP_TYPES_H_
-#define _LIBP_TYPES_H_
+#ifndef _LIBP_STDIO_H_windows_
+#define _LIBP_STDIO_H_windows_
 
-#include <stdint.h>
-#include <stddef.h>
+#include <stdio.h>
 
-typedef unsigned char uchar;
-typedef unsigned int  uint;
+#define snprintf _snprintf
 
 #endif

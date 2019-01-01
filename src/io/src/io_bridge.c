@@ -70,7 +70,7 @@ int br_stream_flush(br_stream * dst)
 
 	bytes = dst->pipe->send(dst->pipe, buf->head, buf->size);
 
-	if (bytes < buf->size || ! dst->pipe->writable)
+	if (bytes < (int)buf->size || ! dst->pipe->writable)
 		dst->base.congestions++;
 
 	if (bytes < 0)
@@ -81,7 +81,7 @@ int br_stream_flush(br_stream * dst)
 
 	dst->base.tx += bytes;
 
-	if (bytes < buf->size)
+	if (bytes < (int)buf->size)
 	{
 		/* partial write */
 		assert(! dst->pipe->writable);
@@ -136,7 +136,7 @@ int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 	buf->size = bytes;
 	bytes = dst->pipe->send(dst->pipe, buf->data, buf->size);
 
-	if (bytes < buf->size || ! dst->pipe->writable)
+	if (bytes < (int)buf->size || ! dst->pipe->writable)
 		dst->base.congestions++;
 
 	if (bytes > 0)
@@ -155,7 +155,7 @@ int br_bridge_rx_tx(br_stream * src, br_stream * dst, io_buffer ** space)
 	/*
 	 *	congested
 	 */
-	assert(0 <= bytes && bytes < buf->size);
+	assert(0 <= bytes && bytes < (int)buf->size);
 	assert(! dst->pipe->writable);
 
 	buf->head += bytes;

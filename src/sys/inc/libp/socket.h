@@ -43,6 +43,8 @@
  *
  * 		-- functions --
  *
+ *		int sk_init();
+ *
  *		int sk_create(int family, int type, int protocol);
  *		int sk_shutdown(int sk);   // SD_WRITE, i.e. send FIN
  *		int sk_close(int sk);

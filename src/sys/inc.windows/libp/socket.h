@@ -4,21 +4,18 @@
  *
  *	http://swapped.cc/bsd-license
  */
-#ifndef _LIBP_SOCKET_H_linux_
-#define _LIBP_SOCKET_H_linux_
+#ifndef _LIBP_SOCKET_H_windows_
+#define _LIBP_SOCKET_H_windows_
 
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
+#include "libp/types.h"
+#include "libp/macros.h"
 
-#include <netinet/in.h>
-#include <netinet/tcp.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
-#include <linux/un.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
+#define SHUT_RD    SD_RECEIVE  /* 0 */
+#define SHUT_WR    SD_SEND     /* 1 */
+#define SHUT_RDWR  SD_BOTH     /* 2 */
 
 /*
  *	Posix-ish Socket API
@@ -59,12 +56,17 @@ typedef struct sockaddr_in  sockaddr_in;
  *
  * 		-- functions --
  *
- *		int sk_init();
+ *		int sk_init(); // platform-specific network init
  */
 static_inline
 int sk_init()
 {
-	return 0;
+	static WSADATA wsa = { 0 };
+
+	if (wsa.wVersion)
+		return 0;
+
+	return WSAStartup(MAKEWORD(2,0), &wsa);
 }
 
 /*
@@ -73,22 +75,22 @@ int sk_init()
  *		int sk_close(int sk);
  */
 
-static inline
+static_inline
 int sk_create(int family, int type, int protocol)
 {
 	return socket(family, type, protocol);
 }
 
-static inline
+static_inline
 int sk_shutdown(int sk)
 {
 	return shutdown(sk, SHUT_WR);
 }
 
-static inline
+static_inline
 int sk_close(int sk)
 {
-	return close(sk);
+	return closesocket(sk); /* win32-specific */
 }
 
  /*
@@ -99,25 +101,25 @@ int sk_close(int sk)
   *		int sk_listen(int sk, int backlog);
   *		int sk_accept(int sk, sockaddr * addr, socklen_t * alen);
   */
-static inline
+static_inline
 int sk_bind(int sk, const sockaddr * addr, socklen_t alen)
 {
 	return bind(sk, addr, alen);
 }
 
-static inline
+static_inline
 int sk_connect(int sk, const sockaddr * a, socklen_t alen)
 {
 	return connect(sk, a, alen);
 }
 
-static inline
+static_inline
 int sk_listen(int sk, int backlog)
 {
 	return listen(sk, backlog);
 }
 
-static inline
+static_inline
 int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
 {
 	return accept(sk, addr, alen);
@@ -128,13 +130,13 @@ int sk_accept(int sk, sockaddr * addr, socklen_t * alen)
   *		int sk_getpeername(int sk, sockaddr * a, socklen_t * alen);
   */
 
-static inline
+static_inline
 int sk_getsockname(int sk, sockaddr * a, socklen_t * alen)
 {
 	return getsockname(sk, a, alen);
 }
 
-static inline
+static_inline
 int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
 {
 	return getpeername(sk, a, alen);
@@ -152,33 +154,27 @@ int sk_getpeername(int sk, sockaddr * a, socklen_t * alen)
  *		              sockaddr * dst, socklen_t dstlen);
  */
 
-static inline
+static_inline
 int sk_recvfrom(int sk, void * buf, size_t len,
                 sockaddr * src, socklen_t * srclen)
 {
-	int r;
-	do { r = recvfrom(sk, buf, len, 0, src, srclen); }
-	while (r < 0 && errno == EINTR);
-	return r;
+	return recvfrom(sk, buf, len, 0, src, srclen);
 }
 
-static inline
+static_inline
 int sk_recv(int sk, void * buf, size_t len)
 {
 	return sk_recvfrom(sk, buf, len, NULL, NULL);
 }
 
-static inline
+static_inline
 int sk_sendto(int sk, const void * buf, size_t len,
               sockaddr * dst, socklen_t dstlen)
 {
-	int r;
-	do { r = sendto(sk, buf, len, 0, dst, dstlen); }
-	while (r < 0 && errno == EINTR);
-	return r;
+	return sendto(sk, buf, len, 0, dst, dstlen);
 }
 
-static inline
+static_inline
 int sk_send(int sk, const void * buf, size_t len)
 {
 	return sk_sendto(sk, buf, len, NULL, 0);
@@ -191,14 +187,14 @@ int sk_send(int sk, const void * buf, size_t len)
  *		                  const void * val, socklen_t vlen);
  */
 
-static inline
+static_inline
 int sk_getsockopt(int sk, int level, int opt,
                   void * val, socklen_t vlen)
 {
 	return getsockopt(sk, level, opt, val, &vlen);
 }
 
-static inline
+static_inline
 int sk_setsockopt(int sk, int level, int opt,
                   const void * val, socklen_t vlen)
 {
@@ -214,20 +210,20 @@ int sk_setsockopt(int sk, int level, int opt,
  *		int sk_error(int sk); // aka "slow", getsockopt(so_error)
  */
 
-static inline
+static_inline
 int sk_unblock(int sk)
 {
-	int r = fcntl(sk, F_GETFL);
-	return (r < 0) ? r : fcntl(sk, F_SETFL, r | O_NONBLOCK);
+	static u_long unblock = 1;
+	return ioctlsocket(sk, FIONBIO, &unblock);
 }
 
-static inline
+static_inline
 int sk_errno()
 {
-	return errno;
+	return WSAGetLastError();
 }
 
-static inline
+static_inline
 int sk_error(int sk)
 {
 	int e;
@@ -243,36 +239,34 @@ int sk_error(int sk)
  *		int sk_conn_timeout(int err);
  */
 
-static inline
+static_inline
 int sk_conn_fatal(int err)
 {
-	return (err != EINTR && err != EINPROGRESS);
+	return (err != WSAEINPROGRESS); // (err != EINTR && err != EINPROGRESS);
 }
 
-static inline
+static_inline
 int sk_recv_fatal(int err)
 {
-	return (err != EINTR && err != EAGAIN &&
-	        err != ENOMEM && err != EWOULDBLOCK);
+	return (err != WSAEWOULDBLOCK);
 }
 
-static inline
+static_inline
 int sk_send_fatal(int err)
 {
-	return (err != EINTR && err != EAGAIN &&
-	        err != ENOMEM && err != EWOULDBLOCK);
+	return (err != WSAEWOULDBLOCK);
 }
 
-static inline
+static_inline
 int sk_conn_refused(int err)
 {
-	return (err == ECONNREFUSED);
+	return (err == WSAECONNREFUSED);
 }
 
-static inline
+static_inline
 int sk_conn_timeout(int err)
 {
-	return (err == ETIMEDOUT);
+	return (err == WSAETIMEDOUT);
 }
 
 /*
@@ -281,7 +275,7 @@ int sk_conn_timeout(int err)
  *		SOCKADDR_IN_ADDR(sa)
  *		SOCKADDR_IN_PORT(sa)
  */
-static inline
+static_inline
 void sockaddr_in_init(sockaddr_in * sa)
 {
 	static sockaddr_in sa_zero = { 0 };

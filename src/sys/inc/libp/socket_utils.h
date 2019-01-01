@@ -16,40 +16,40 @@
  *
  *	when calling bind/connect/accept/etc.
  */
-static inline
+static_inline
 int sk_bind_ip4(int sk, const sockaddr_in * addr)
 {
 	return sk_bind(sk, (sockaddr*)addr, sizeof(*addr));
 }
 
-static inline
+static_inline
 int sk_connect_ip4(int sk, const sockaddr_in * addr)
 {
 	return sk_connect(sk, (sockaddr*)addr, sizeof(*addr));
 }
 
-static inline
+static_inline
 int sk_accept_ip4(int sk, sockaddr_in * addr)
 {
 	socklen_t alen = sizeof(*addr);
 	return sk_accept(sk, (sockaddr*)addr, &alen);
 }
 
-static inline
+static_inline
 int sk_getsockname_ip4(int sk, sockaddr_in * addr)
 {
 	socklen_t alen = sizeof(*addr);
 	return sk_getsockname(sk, (sockaddr*)addr, &alen);
 }
 
-static inline
+static_inline
 int sk_getpeername_ip4(int sk, sockaddr_in * addr)
 {
 	socklen_t alen = sizeof(*addr);
 	return getpeername(sk, (sockaddr*)addr, &alen);
 }
 
-static inline
+static_inline
 int sk_no_delay(int sk)
 {
 	static const int yes = 1;

@@ -8,12 +8,13 @@
 #define _LIBP_IO_PIPE_MISC_H_
 
 #include "libp/io_pipe.h"
-#include <stdio.h>
+#include "libp/macros.h"
+#include "libp/stdio.h"
 
 /*
  *	io_pipe state as bitmask
  */
-static inline
+static_inline
 uint pipe_get_state(const io_pipe * p)
 {
 	return ((p->ready    <<  0) & 0x01) |
@@ -24,7 +25,7 @@ uint pipe_get_state(const io_pipe * p)
 	       ((p->fin_rcvd << 16) & 0x20);
 }
 
-static inline
+static_inline
 void pipe_clone_state(io_pipe * dst, const io_pipe * src)
 {
 	dst->ready    = src->ready;
@@ -35,7 +36,7 @@ void pipe_clone_state(io_pipe * dst, const io_pipe * src)
 	dst->fin_rcvd = src->fin_rcvd;
 }
 
-static inline
+static_inline
 void pipe_tag_as_broken(io_pipe * p)
 {
 	p->broken = 1;

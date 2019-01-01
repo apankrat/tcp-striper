@@ -41,15 +41,18 @@ int main(int argc, char ** argv)
 	int yes = 1;
 
 	//
-	signal(SIGPIPE, SIG_IGN);
+//	signal(SIGPIPE, SIG_IGN);
 
 	//
 	evl = new_event_loop_select();
 
 	//
+	if (sk_init() < 0)
+		return 1;
+
 	sk = sk_create(AF_INET, SOCK_STREAM, 0);
 	if (sk < 0)
-		return 1;
+		return 2;
 
 	sockaddr_in_init(&sa);
 	SOCKADDR_IN_PORT(&sa) = htons(55555);
@@ -57,14 +60,14 @@ int main(int argc, char ** argv)
 	if (sk_setsockopt(sk, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) < 0 ||
 	    sk_bind_ip4(sk, &sa) < 0 ||
 	    sk_listen(sk, 8) < 0)
-		return 2;
+		return 3;
 
 	printf("listening on %s ...\n", sa_to_str(&sa, buf, sizeof buf));
 
 	//
 	c2p = sk_accept_ip4(sk, &sa);
 	if (c2p < 0)
-		return 3;
+		return 4;
 	
 	printf("accepted\n");
 	sk_unblock(c2p);
@@ -75,16 +78,16 @@ int main(int argc, char ** argv)
 	
 	p2s = sk_create(AF_INET, SOCK_STREAM, 0);
 	if (p2s < 0)
-		return 4;
+		return 5;
 
 	if (sk_unblock(p2s) < 0)
-		return 5;
+		return 6;
 	
 	printf("connecting to %s ...\n", sa_to_str(&sa, buf, sizeof buf));
 
 	if (sk_connect_ip4(p2s, &sa) < 0 &&
 	    sk_conn_fatal(sk_errno(p2s)))
-	    	return 6;
+		return 7;
 
 	//
 	io_c2p = new_tcp_pipe(c2p);

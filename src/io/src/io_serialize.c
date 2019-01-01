@@ -5,12 +5,13 @@
  *	http://swapped.cc/bsd-license
  */
 #include "libp/io_serialize.h"
+#include "libp/macros.h"
 
 /*
  *	Variable-size LSB in 7bit chunks
  *	000zzzzz zzyyyyyy yxxxxxxx -> 1xxxxxxx 1yyyyyyy 0zzzzzzz
  */
-static inline
+static_inline
 int io_store_size_unrolled(uint8_t * buf, size_t len, size_t val)
 {
 	if (val & 0xF0000000)
@@ -108,7 +109,7 @@ int io_parse_size(const uint8_t * buf, size_t len, size_t * ret)
 	size_t val = 0;
 	int    off = 0;
 	size_t oct;
-	int    r;
+	size_t r;
 
 	for (r = 0; r < len; off += 7, r++)
 	{

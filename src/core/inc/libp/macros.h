@@ -12,13 +12,17 @@
 /*
  *	Restore pointer to the structure by a pointer to its field
  */
-#define struct_of(p,t,f) ((t*)(- offsetof(t,f) + (char*)(p)))
+#define struct_of(p,t,f) ((t*)(-(int)offsetof(t,f) + (char*)(p)))
 
 /*
  *
  */
 #define sizeof_array(a) (sizeof(a) / sizeof(a[0]))
 
+/*
+ *
+ */
+#define static_inline  static inline
 
 #endif
 
