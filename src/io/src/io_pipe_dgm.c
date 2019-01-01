@@ -39,7 +39,7 @@ typedef struct dgm_pipe dgm_pipe;
 static
 void dgm_pipe_clone_state(dgm_pipe * p)
 {
-	pipe_clone_state(&p->base, p->io);
+	clone_pipe_state(&p->base, p->io);
 }
 
 /*
@@ -158,7 +158,7 @@ int dgm_pipe_recv(io_pipe * self, void * buf, size_t len)
 	}
 	else
 	{
-		p->rx = alloc_io_buffer(len + p->max_hdr_size, NULL, 0);
+		p->rx = alloc_io_buffer(p->max_hdr_size + len, NULL, 0);
 	}
 
 	assert(p->rx && p->rx->head == p->rx->data);
@@ -167,7 +167,6 @@ int dgm_pipe_recv(io_pipe * self, void * buf, size_t len)
 	/* OK, read a bit more */
 	space  = p->rx->capacity;
 	space -= p->rx->size;
-	space -= p->rx->head - p->rx->data; /* that's a nop */
 
 	r = p->io->recv(p->io, p->rx->head + p->rx->size, space);
 	if (r < 0)
@@ -209,7 +208,7 @@ err:
 	free_io_buffer(p->rx);
 	p->rx = NULL;
 
-	pipe_tag_as_broken(&p->base);
+	tag_pipe_as_broken(&p->base);
 	return -1;
 }
 
@@ -232,7 +231,7 @@ int dgm_pipe_send(io_pipe * self, const void * buf, size_t len)
 	r = io_store_size(dgm->head, dgm->capacity, len);
 	if (r < 0)
 	{
-		pipe_tag_as_broken(&p->base);
+		tag_pipe_as_broken(&p->base);
 		free_io_buffer(dgm);
 		return -1;
 	}

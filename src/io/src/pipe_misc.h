@@ -15,7 +15,7 @@
  *	io_pipe state as bitmask
  */
 static_inline
-uint pipe_get_state(const io_pipe * p)
+uint get_pipe_state(const io_pipe * p)
 {
 	return ((p->ready    <<  0) & 0x01) |
 	       ((p->broken   <<  1) & 0x02) |
@@ -26,7 +26,7 @@ uint pipe_get_state(const io_pipe * p)
 }
 
 static_inline
-void pipe_clone_state(io_pipe * dst, const io_pipe * src)
+void clone_pipe_state(io_pipe * dst, const io_pipe * src)
 {
 	dst->ready    = src->ready;
 	dst->broken   = src->broken;
@@ -37,7 +37,7 @@ void pipe_clone_state(io_pipe * dst, const io_pipe * src)
 }
 
 static_inline
-void pipe_tag_as_broken(io_pipe * p)
+void tag_pipe_as_broken(io_pipe * p)
 {
 	p->broken = 1;
 

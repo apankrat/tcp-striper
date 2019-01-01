@@ -33,7 +33,7 @@ typedef struct atx_pipe atx_pipe;
 static
 void atx_pipe_clone_state(atx_pipe * p)
 {
-	pipe_clone_state(&p->base, p->io);
+	clone_pipe_state(&p->base, p->io);
 
 	if (p->pending)
 		p->base.writable = 0;

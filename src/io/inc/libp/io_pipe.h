@@ -13,7 +13,7 @@
  *	-- In short --
  *
  *	io_pipe is a duplex, reliable, ordered communication
- *	channel based on the TCP socket semantics.
+ *	channel based on TCP socket semantics.
  *
  *	-- Sending/receiving --
  *
@@ -47,14 +47,14 @@
  *	on_activity() callback from another pipe that it may
  *	be using for the actual I/O.
  *
- *	In practice it means that if for example the pipe got 
+ *	In practice it means that if, for example, the pipe got 
  *	congested, the app should simply be ticking its event 
  *	loop and it will receive on_activity() callback with
- *	IO_EV_writable once the pipe is writable again.
+ *	IO_EV_writable once the congestion clears.
  *
  *	-- FIN --
  *
- *	Pipes support FIN/EOF semantics of TCP sockets. That is
+ *	Pipes support FIN/EOF semantics of TCP sockets. That is,
  *	calling send_fin() will close the pipe for writing and
  *	will cause recv() on the peer's end return with 0 after
  *	it retrieves all other incoming data.
@@ -79,8 +79,9 @@
  *
  *	Each pipe starts its life with both bits cleared. Once
  *	it gets into a functional state by completing, for 
- *	example, its connection handshake, it sets the 'ready' 
- *	flag and issues on_activity() callback with IO_EV_ready. 
+ *	example, some kind of connection handshake, it sets the 
+ *	'ready' flag and issues the on_activity() callback with 
+ *	IO_EV_ready. 
  *
  *	-- Error state --
  *
@@ -162,6 +163,24 @@ io_pipe * new_atx_pipe(io_pipe * io);
  *	payload. See UDP for details.
  */
 io_pipe * new_dgm_pipe(io_pipe * io, size_t max_size);
+
+/*
+ *	Trunking pipe
+ *
+ *	Aggregates 1+ atx/dgm pipes into a single meta pipe
+ *	that distributes outbound traffic across given pipes
+ *	in round-robin (rr) or until-congested (uc) fashion.
+ *
+ *	Each sent packet is prepended with a sequence number
+ *	to allow for the packet stream to be ordered properly
+ *	on the receiving end.
+ */
+typedef struct agg_pipe agg_pipe;
+
+io_pipe * new_agg_pipe(io_pipe * carrier, agg_pipe ** api);
+
+void agg_pipe_add_pipe(agg_pipe * api, io_pipe * carrier);
+void agg_pipe_set_mode(agg_pipe * api, int round_robin);
 
 #endif
 

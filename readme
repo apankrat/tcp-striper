@@ -27,15 +27,15 @@ Want
 
 
 That is - to splice a pair of intermediate proxies into a TCP
-connection and then have them talk via multiple TCP streams in 
-parallel.
+connection and then have them talk to each other via multiple 
+TCP streams in parallel.
 
 
 In particular, if an active stream between the proxies gets
 congested, they would switch to another non-congested stream.
 This should help proxies push more traffic through if/when
 there are per-stream caps on the route between A and B. Like
-the ones my cable provider has :)
+the ones that certain cable provider has ;)
 
 
 
